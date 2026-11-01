@@ -17,6 +17,8 @@ jobs:
       - name: Unit tests
         working-directory: BLEClipboardMac
         run: swift test
+      - name: Validate release script syntax
+        run: zsh -n BLEClipboardMac/build_app.sh scripts/build_icon.sh scripts/package_release.sh scripts/notarize_release.sh
       - name: Universal app and icon
         run: BLEClipboardMac/build_app.sh --universal
       - name: Verify bundle

@@ -31,6 +31,11 @@ cp "Resources/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app_dir/Contents/Info.plist"
 cp "Resources/AppIcon.icns" "$app_dir/Contents/Resources/AppIcon.icns"
 cp "$project_dir/../LICENSE" "$app_dir/Contents/Resources/LICENSE"
-codesign --force --options runtime --sign "${CODE_SIGN_IDENTITY:--}" "$app_dir"
+identity=${CODE_SIGN_IDENTITY:--}
+signing_options=(--force --options runtime --sign "$identity")
+if [[ "$identity" != - ]]; then
+    signing_options+=(--timestamp)
+fi
+codesign "${signing_options[@]}" "$app_dir"
 codesign --verify --deep --strict "$app_dir"
 echo "$app_dir"

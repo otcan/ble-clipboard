@@ -92,9 +92,52 @@ does not provide a Developer ID identity or Apple notarization. Apple Developmen
 certificates cannot substitute for Developer ID distribution.
 
 For a signed build, set `CODE_SIGN_IDENTITY` to an available Developer ID identity
-before packaging. Submit the resulting artifact with your own Apple notarization
-credentials, then staple and verify the ticket before distributing it. Never
-commit signing keys, certificate passwords, or Apple credentials.
+before packaging. The build adds a secure timestamp when using a non-ad-hoc
+identity. Never commit signing keys, certificate passwords, or Apple credentials.
+
+### Notarized releases
+
+Create the Developer ID Application certificate with the organization's Account
+Holder account. Create its CSR using Keychain Access so the private key stays in
+the login Keychain. Select Apple's current G2 certificate authority in the portal.
+Install the issued certificate on the same Mac that generated the key.
+
+Store notarization credentials locally with an interactive password prompt:
+
+```sh
+xcrun notarytool store-credentials ble-clipboard-notary \
+  --apple-id "YOUR_APPLE_ID" --team-id "YOUR_TEAM_ID"
+```
+
+Enter the app-specific password in that secure prompt, not a shell command,
+chat, source file, or issue. Use a team-authorized account. Signing identity and
+notarization authentication are separate: installing the certificate alone does
+not authenticate `notarytool`.
+
+After building the Flipper package, prepare the notarized Mac release:
+
+```sh
+export CODE_SIGN_IDENTITY="Developer ID Application: YOUR_ORGANIZATION (YOUR_TEAM_ID)"
+export DEVELOPER_TEAM_ID="YOUR_TEAM_ID"
+export NOTARY_PROFILE="ble-clipboard-notary"
+scripts/notarize_release.sh 0.1.1
+```
+
+The script checks the Keychain profile, builds a universal signed bundle,
+verifies its team, submits the archive, waits for acceptance, staples and verifies
+the ticket, checks Gatekeeper, then repacks and regenerates checksums. It never
+publishes automatically. Keep `dist/notary-logs/` local; those logs are excluded
+from version control and are not release artifacts.
+
+Do not rerun `package_release.sh` after notarizing: rebuilding/re-signing replaces
+the stapled bundle. Generate the cask from the final post-staple ZIP. Publish a
+new version rather than replacing an archive already referenced by Homebrew.
+
+The default GitHub tag workflow still builds an ad-hoc **draft**. For a notarized
+release, replace the draft's ZIP and checksum assets with the verified local
+outputs before publishing it, or configure an explicitly approved signing CI
+workflow. No signing certificate or Apple credential is uploaded to CI by these
+scripts.
 
 The first release uses a third-party Homebrew tap. It does not remove quarantine,
 disable Gatekeeper, or claim admission to the official Homebrew cask repository.
