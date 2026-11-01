@@ -1,0 +1,49 @@
+name: Macros and Store Validation
+
+on:
+  push:
+    branches: [feature/macros-store]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Swift tests
+        run: swift test --package-path BLEClipboardMac
+      - name: Production Ducker contract tests
+        run: sh scripts/check_ducker.sh
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Validate sandboxed unsigned universal archive
+        run: sh scripts/archive_store.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-unsigned-validation-only
+          path: Store/Archives/*.xcarchive
+
+  ducker-firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ufbt==0.2.6
+      - run: ufbt update --branch 1.5.1
+      - name: Build pinned Ducker for API 88.2
+        working-directory: Vendor/Ducker
+        run: ufbt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ducker-api-88.2-development
+          path: Vendor/Ducker/dist/trans_the_flip.fap

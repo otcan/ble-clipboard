@@ -12,3 +12,14 @@ The SDK, firmware, Apple frameworks, and Homebrew retain their own licenses.
 The macOS application icon was generated using OpenAI image generation and
 adapted into Apple's ICNS sizes using sips and iconutil. The checked-in source
 PNG is the master asset. See docs/ARTWORK.md for its generation prompt.
+
+Vendor/Ducker is an unmodified, separately licensed Git submodule:
+DuckerTheFlipper (TransTheFlip), Copyright (C) 2026 Romain Champliau.
+https://github.com/xunalopak/ducker-the-flipper
+Pinned revision: 9d706967f7006702c9db3368235e6b6495176a46
+Its source headers allow GPL version 3 or later; see its LICENSE and source
+headers. That license is not overridden by the repository's GPL-3.0-only notice.
+The new Mac adapter implements its public TTF1 wire protocol independently;
+the GPL firmware implementation is not linked into the macOS executable.
+scripts/tests/ducker_contract.c compiles upstream's test harness by inclusion
+for testing only, with the upstream copyright and licensing retained.

@@ -1,0 +1,49 @@
+# Macros and Mac App Store implementation
+
+Work is isolated on `feature/macros-store`; the main worktree and connected
+Flipper must not be interrupted by development builds.
+
+## Milestones
+
+- [x] Preserve the working baseline in a separate Git worktree.
+- [x] Pin and host-test Ducker; build for firmware 1.5.1 / API 88.2 (not hardware validation).
+- [x] Implement a native, tested TTF1 adapter and safe literal serialization.
+- [x] Implement local macro persistence, parameters, previews, and starter macros.
+- [x] Integrate the library into the native Mac interface.
+- [x] Add the sandboxed Xcode Store target and validate an unsigned universal archive.
+- [x] Run protocol, engine, persistence, and UI tests.
+- [ ] Perform real-device integration and interruption tests when the device is available.
+- [ ] Resolve Store licensing/rights and distribution metadata.
+- [ ] Upload a signed TestFlight build after distribution signing is configured.
+- [ ] Complete external beta, review demonstration, and owner approval.
+- [ ] Submit for App Review and verify the Store-installed release.
+
+## Non-automatable gates
+
+No ownership or licensing consent is inferred from a repository's existence.
+The existing GPL notices remain in place pending a rights review; no GPL
+implementation code is copied into the native Mac adapter. Store compatibility
+must be reviewed before submission. The Account Holder must personally accept
+agreements and approve banking/tax details, pricing, and release. Tester feedback,
+physical hardware evidence, and Apple's approval cannot be fabricated.
+
+## Evidence and remaining boundary
+
+Local Swift tests: 24 passing. Xcode tests: 24 unit plus 2 UI checks passing
+(create/edit and offline review). Host C tests cover upstream protocol/HID plus
+the Mac serialization contract. Ducker is pinned, unmodified and builds as a FAP
+for API 88.2. The universal archive contains arm64/x86_64, icon, license/privacy
+resources and the required Bluetooth usage description. Debug's separate bundle
+identifier avoids the existing app. UI testing explicitly disables Bluetooth.
+The original SwiftPM/direct-download app keeps its legacy entry point; only
+the distinct `MACROS_STORE` target uses the new UI/backend.
+
+The parent worktree, installed Mac app and connected Flipper were not replaced
+or reconfigured. No hardware end-to-end pass is claimed for this new backend.
+The local keychain has development/Developer ID identities, but no suitable
+Store distribution identity. No signing certificate, profile, App Store record,
+price schedule, TestFlight upload or review submission has been created.
+
+Store metadata/privacy/review drafts and a gated archive script are prepared.
+`Store/metadata/RELEASE-CHECKLIST.md` records the still-unverified acceptance
+matrix; do not turn these draft documents into a claim that deployment is done.

@@ -2,6 +2,36 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+#if MACROS_STORE
+@main
+struct BLEClipboardApp: App {
+    @StateObject private var bluetooth = DuckerBluetooth(preview: ProcessInfo.processInfo.arguments.contains("--ui-testing"))
+    @StateObject private var library = MacroLibrary(url: ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        ? FileManager.default.temporaryDirectory.appendingPathComponent("bt-paste-ui-\(UUID()).json") : nil)
+
+    var body: some Scene {
+        WindowGroup("BLE Clipboard") {
+            MacroWorkspace(bluetooth: bluetooth, library: library)
+                .frame(minWidth: 860, minHeight: 640)
+        }
+        .defaultSize(width: 1020, height: 720)
+        .commands {
+            CommandGroup(replacing: .newItem) {}
+        }
+        Settings {
+            Form {
+                LabeledContent("Execution engine", value: "DuckerTheFlipper / TTF1")
+                LabeledContent("License", value: "GNU GPL v3; see source notices")
+                Link("Source and Notices", destination: URL(string: "https://github.com/otcan/ble-clipboard")!)
+                LicenseNoticesButton()
+            }
+            .padding(24)
+            .frame(width: 440)
+        }
+    }
+}
+
+#else
 @main
 struct BLEClipboardApp: App {
     @StateObject private var bluetooth = BluetoothManager()
@@ -12,15 +42,13 @@ struct BLEClipboardApp: App {
                 .frame(minWidth: 560, minHeight: 540)
         }
         .defaultSize(width: 660, height: 600)
-        .commands {
-            CommandGroup(replacing: .newItem) {}
-        }
-        Settings {
-            ClipboardSettings()
-        }
+        .commands { CommandGroup(replacing: .newItem) {} }
+        Settings { ClipboardSettings() }
     }
 }
+#endif
 
+#if !MACROS_STORE
 private enum ClipboardStyle {
     static let accent = Color(red: 0.93, green: 0.34, blue: 0.09)
 }
@@ -285,3 +313,4 @@ private struct ClipboardSettings: View {
         .frame(width: 360, height: 110)
     }
 }
+#endif

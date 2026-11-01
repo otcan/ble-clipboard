@@ -16,6 +16,9 @@
 !/SECURITY.md
 !/CONTRIBUTING.md
 !/VERSION
+!/.gitmodules
+!/Vendor/
+!/Store/
 
 **/.DS_Store
 **/.build/
@@ -32,3 +35,8 @@
 **/*.p12
 **/*.mobileprovision
 **/Icon.iconset/
+**/DerivedData/
+**/*.xcarchive/
+**/*.xcresult/
+**/*.xcodeproj/
+**/ExportOptions.local.plist

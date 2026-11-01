@@ -4,6 +4,17 @@
 
 <h1 align="center">BLE Clipboard</h1>
 
+> **Macros / Store development branch:** the new Store target uses
+> DuckerTheFlipper, not the legacy `ble_clipboard.fap`. It adds a local macro
+> library, parameters, structured steps and an explicit run review. This is not
+> yet a Store release or a hardware-validated replacement for 0.1.x.
+> Start with [Macros and Ducker](docs/MACROS.md),
+> [Store build/deployment](Store/README.md), and
+> [implementation status](docs/IMPLEMENTATION-STATUS.md).
+> The installation and verification sections below describe the existing
+> **0.1.x legacy release**. Its SwiftPM/direct-download target is preserved;
+> build the separate Xcode Store target to try the new macro interface.
+
 <p align="center">A wireless clipboard bridge for your Flipper Zero USB keyboard.</p>
 
 <p align="center">
