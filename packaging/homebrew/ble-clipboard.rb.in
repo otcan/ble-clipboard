@@ -7,7 +7,7 @@ cask "ble-clipboard" do
   desc "Send text over Bluetooth to a Flipper Zero USB keyboard"
   homepage "https://github.com/otcan/ble-clipboard"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "BLE Clipboard.app"
 
