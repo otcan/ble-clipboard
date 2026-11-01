@@ -136,20 +136,20 @@ struct MacroWorkspace: View {
             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
             Label("USB target", systemImage: "cable.connector").font(.system(size: 12))
             Spacer(minLength: 8)
-            if !bluetooth.candidates.isEmpty && !bluetooth.isConnected {
+            if !bluetooth.candidates.isEmpty && !bluetooth.isConnected && !bluetooth.isConnecting {
                 Menu("Devices") {
                     ForEach(bluetooth.candidates) { item in Button(item.name) { bluetooth.connect(item.id) } }
                 }.fixedSize()
             }
             Button {
-                if bluetooth.isConnected || bluetooth.isScanning { bluetooth.disconnect() }
+                if bluetooth.isConnected || bluetooth.isConnecting || bluetooth.isScanning { bluetooth.disconnect() }
                 else { bluetooth.scan() }
             } label: {
-                Image(systemName: bluetooth.isConnected ? "power" : bluetooth.isScanning ? "stop.fill" : "antenna.radiowaves.left.and.right")
+                Image(systemName: bluetooth.isConnected ? "power" : bluetooth.isScanning || bluetooth.isConnecting ? "stop.fill" : "antenna.radiowaves.left.and.right")
                     .frame(width: 26, height: 26)
             }
-            .help(bluetooth.isConnected ? "Disconnect" : bluetooth.isScanning ? "Stop Searching" : "Connect to Flipper")
-            .accessibilityLabel(bluetooth.isConnected ? "Disconnect" : "Connect to Flipper")
+            .help(bluetooth.isConnected ? "Disconnect" : bluetooth.isConnecting ? "Cancel Connection" : bluetooth.isScanning ? "Stop Searching" : "Connect to Flipper")
+            .accessibilityLabel(bluetooth.isConnected ? "Disconnect" : bluetooth.isConnecting ? "Cancel Connection" : "Connect to Flipper")
             .disabled(bluetooth.isBusy)
         }
         .padding(18)

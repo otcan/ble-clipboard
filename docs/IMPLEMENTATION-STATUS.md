@@ -29,7 +29,9 @@ physical hardware evidence, and Apple's approval cannot be fabricated.
 
 ## Evidence and remaining boundary
 
-Local Swift tests: 24 passing. Xcode tests: 24 unit plus 2 UI checks passing
+Local Swift tests: 26 passing, including all 28 layout serialization cases and
+explicit Bluetooth permission-state diagnostics.
+The earlier Xcode run passed 24 unit plus 2 UI checks
 (create/edit and offline review). Host C tests cover upstream protocol/HID plus
 the Mac serialization contract. Ducker is pinned, unmodified and builds as a FAP
 for API 88.2. The universal archive contains arm64/x86_64, icon, license/privacy
@@ -38,8 +40,14 @@ identifier avoids the existing app. UI testing explicitly disables Bluetooth.
 The original SwiftPM/direct-download app keeps its legacy entry point; only
 the distinct `MACROS_STORE` target uses the new UI/backend.
 
-The parent worktree, installed Mac app and connected Flipper were not replaced
-or reconfigured. No hardware end-to-end pass is claimed for this new backend.
+The initial implementation left the parent worktree, installed Mac app and
+connected Flipper unchanged. On the owner's subsequent request, Ducker was
+installed separately on the Flipper and verified by USB read-back checksum.
+The original app and firmware were not overwritten. Live discovery succeeded,
+but no hardware end-to-end pass is claimed: setup encountered a GATT write
+failure, then the diagnostic rebuild awaited macOS Bluetooth authorization.
+See `HARDWARE-VALIDATION.md` for the exact checkpoint. The capture helper is a
+separate, non-shipping development tool, not a Store entitlement change.
 The local keychain has development/Developer ID identities, but no suitable
 Store distribution identity. No signing certificate, profile, App Store record,
 price schedule, TestFlight upload or review submission has been created.

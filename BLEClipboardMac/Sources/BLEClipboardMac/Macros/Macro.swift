@@ -8,9 +8,66 @@ enum TargetSystem: String, Codable, CaseIterable, Identifiable {
 enum MacroLayout: String, Codable, CaseIterable, Identifiable {
     case us = "QWERTY US"
     case turkishQ = "tr-TR.kl"
+    case bosnian = "ba-BA.kl"
+    case czech = "cz_CS.kl"
+    case danish = "da-DA.kl"
+    case germanSwiss = "de-CH.kl"
+    case german = "de-DE.kl"
+    case dvorak = "dvorak.kl"
+    case british = "en-UK.kl"
+    case spanish = "es-ES.kl"
+    case spanishLatinAmerica = "es-LA.kl"
+    case frenchBelgian = "fr-BE.kl"
+    case frenchCanadian = "fr-CA.kl"
+    case frenchSwiss = "fr-CH.kl"
+    case frenchMac = "fr-FR-mac.kl"
+    case french = "fr-FR.kl"
+    case croatian = "hr-HR.kl"
+    case hungarian = "hu-HU.kl"
+    case italianMac = "it-IT-mac.kl"
+    case italian = "it-IT.kl"
+    case japanese = "ja-JP.kl"
+    case norwegian = "nb-NO.kl"
+    case dutch = "nl-NL.kl"
+    case portugueseBrazil = "pt-BR.kl"
+    case portuguese = "pt-PT.kl"
+    case slovenian = "si-SI.kl"
+    case slovak = "sk-SK.kl"
+    case swedish = "sv-SE.kl"
     var id: String { rawValue }
-    var title: String { self == .us ? "US" : "Turkish Q" }
-    var responseName: String { self == .us ? rawValue : "tr-TR" }
+    var title: String {
+        switch self {
+        case .us: return "English (US)"
+        case .turkishQ: return "Turkish Q"
+        case .bosnian: return "Bosnian"
+        case .czech: return "Czech"
+        case .danish: return "Danish"
+        case .germanSwiss: return "German (Swiss)"
+        case .german: return "German"
+        case .dvorak: return "Dvorak"
+        case .british: return "English (UK)"
+        case .spanish: return "Spanish"
+        case .spanishLatinAmerica: return "Spanish (Latin America)"
+        case .frenchBelgian: return "French (Belgium)"
+        case .frenchCanadian: return "French (Canada)"
+        case .frenchSwiss: return "French (Swiss)"
+        case .frenchMac: return "French (Mac)"
+        case .french: return "French"
+        case .croatian: return "Croatian"
+        case .hungarian: return "Hungarian"
+        case .italianMac: return "Italian (Mac)"
+        case .italian: return "Italian"
+        case .japanese: return "Japanese"
+        case .norwegian: return "Norwegian"
+        case .dutch: return "Dutch"
+        case .portugueseBrazil: return "Portuguese (Brazil)"
+        case .portuguese: return "Portuguese"
+        case .slovenian: return "Slovenian"
+        case .slovak: return "Slovak"
+        case .swedish: return "Swedish"
+        }
+    }
+    var responseName: String { self == .us ? rawValue : String(rawValue.dropLast(3)) }
 }
 
 struct MacroParameter: Codable, Equatable, Identifiable {

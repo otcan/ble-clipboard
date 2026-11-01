@@ -26,7 +26,8 @@ and explicitly start each run. Import and export macro definitions as JSON.
 The Mac app has no cloud account, subscription or clipboard history service.
 It types USB keyboard input rather than setting the target's OS clipboard.
 ASCII text, tabs and line breaks are supported; arbitrary Unicode is not.
-US and Turkish Q layouts must match the target keyboard configuration.
+Choose from 28 keyboard layouts, which must match the target configuration;
+non-US layouts require their corresponding Flipper SD assets.
 
 Only use with devices you own or are authorized to control. Keystrokes cannot
 be undone, and line breaks can submit forms or execute input. Review each run.

@@ -2,6 +2,7 @@ import AppKit
 import CoreBluetooth
 import Combine
 import Foundation
+import OSLog
 
 final class DuckerBluetooth: NSObject, ObservableObject {
     struct Candidate: Identifiable {
@@ -13,6 +14,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
     @Published private(set) var deviceName = "Flipper Zero"
     @Published private(set) var isScanning = false
     @Published private(set) var isConnected = false
+    @Published private(set) var isConnecting = false
     @Published private(set) var isReady = false
     @Published private(set) var isBusy = false
     @Published private(set) var progress = 0.0
@@ -21,6 +23,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
     private static let service = CBUUID(string: "8FE5B3D5-2E7F-4A98-2A48-7ACC60FE0000")
     private static let rx = CBUUID(string: "19ED82AE-ED21-4C9D-4145-228E62FE0000")
     private static let tx = CBUUID(string: "19ED82AE-ED21-4C9D-4145-228E61FE0000")
+    private static let logger = Logger(subsystem: "com.oguzcanunver.BLEClipboardMac", category: "DuckerBluetooth")
     private var central: CBCentralManager?
     private var discovered: [UUID: CBPeripheral] = [:]
     private var peripheral: CBPeripheral?
@@ -54,7 +57,19 @@ final class DuckerBluetooth: NSObject, ObservableObject {
         wantsScan = true
         if central == nil { central = CBCentralManager(delegate: self, queue: .main) }
         else if central?.state == .poweredOn { startScan() }
-        else { status = "Bluetooth is unavailable. Check System Settings." }
+        else if let central { status = Self.unavailableStatus(for: central.state) }
+    }
+
+    static func unavailableStatus(for state: CBManagerState) -> String {
+        switch state {
+        case .unknown: return "Waiting for Bluetooth initialization or authorization..."
+        case .resetting: return "Bluetooth is resetting. Reconnect when it is available."
+        case .unsupported: return "Bluetooth LE is not supported on this Mac."
+        case .unauthorized: return "Allow Bluetooth access for the preview app in System Settings."
+        case .poweredOff: return "Turn on Bluetooth in System Settings."
+        case .poweredOn: return "Bluetooth is available."
+        @unknown default: return "Bluetooth is unavailable. Check System Settings."
+        }
     }
 
     private func startScan() {
@@ -88,6 +103,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
         peripheral = item
         item.delegate = self
         deviceName = item.name ?? "Flipper Zero"
+        isConnecting = true
         status = "Connecting to \(deviceName)..."
         central?.connect(item)
         deadline(60) { [weak self] in self?.fail("Pairing timed out. Connect again to retry.") }
@@ -114,7 +130,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
 
     func disconnect() {
         wantsScan = false
-        central?.stopScan()
+        if central?.state == .poweredOn { central?.stopScan() }
         if let item = peripheral { central?.cancelPeripheralConnection(item) }
         clear()
         status = "Disconnected"
@@ -133,6 +149,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
         decoder = DuckerLineDecoder()
         isScanning = false
         isConnected = false
+        isConnecting = false
         isReady = false
         isBusy = false
         capacity = 0
@@ -181,6 +198,7 @@ final class DuckerBluetooth: NSObject, ObservableObject {
                 watchdog?.cancel()
                 capacity = limit
                 isReady = true
+                isConnecting = false
                 status = "Connected to \(deviceName)"
             case .cancelCapability: break
             case .accepted: status = "Typing on USB target..."
@@ -191,8 +209,12 @@ final class DuckerBluetooth: NSObject, ObservableObject {
                 isBusy = false
                 progress = cancelled ? progress : 1
                 status = cancelled ? "Cancelled; some input may already have been typed" : "USB output complete"
-            case .failed:
-                fail("Flipper rejected the run. Connection closed; check layout, SD card and USB before retrying.")
+            case .failed(let error):
+                if error == "ERR:LAYOUT" {
+                    fail("Keyboard layout unavailable. Install its .kl file in /ext/badusb/assets/layouts, then reconnect.")
+                } else {
+                    fail("Flipper rejected the run. Connection closed; check layout, SD card and USB before retrying.")
+                }
             case .disconnectToCancel:
                 disconnect()
                 status = "Connection closed to cancel. Some input may already have been typed."
@@ -205,7 +227,7 @@ extension DuckerBluetooth: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn { if wantsScan { startScan() } }
         else if central.state != .unknown {
-            fail(central.state == .unauthorized ? "Allow Bluetooth access in System Settings." : "Bluetooth is unavailable.")
+            fail(Self.unavailableStatus(for: central.state))
         }
     }
 
@@ -219,6 +241,7 @@ extension DuckerBluetooth: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didConnect item: CBPeripheral) {
         guard item == peripheral else { return }
         isConnected = true
+        Self.logger.notice("BLE link connected; discovering serial service")
         status = "Confirm the Bluetooth pairing code on both devices"
         item.discoverServices([Self.service])
     }
@@ -266,7 +289,12 @@ extension DuckerBluetooth: CBPeripheralDelegate {
 
     func peripheral(_ item: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         guard item == peripheral, characteristic == rx else { return }
-        guard error == nil else { fail("Bluetooth write failed. Check the target before resending."); return }
+        if let error {
+            let detail = error as NSError
+            Self.logger.error("GATT write failed: \(detail.domain, privacy: .public) / \(detail.code): \(detail.localizedDescription, privacy: .public)")
+            fail("Bluetooth write failed (\(detail.domain) \(detail.code)): \(detail.localizedDescription). No automatic retry.")
+            return
+        }
         if !writes.isEmpty { writes.removeFirst() }
         writeInFlight = false
         if isBusy { watchJob() }

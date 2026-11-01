@@ -79,8 +79,15 @@ GATT serial service `8FE5B3D5-2E7F-4A98-2A48-7ACC60FE0000`; Mac writes RX
 4. Only `RECV` permits sending `TTFEXEC`. No transfer is replayed on reconnect.
 5. `WAIT_USB`, `SENDING`, `PROGRESS`, and `OK` drive the run state.
 
-US is built in. Turkish Q requests `tr-TR.kl` and expects `LAYOUT:tr-TR`;
-the file must already exist at `/ext/badusb/assets/layouts/tr-TR.kl`.
+The Store picker offers 28 layouts matching the official SD asset filenames:
+English US/UK, Turkish Q, Bosnian, Czech, Danish, German/Swiss German, Dvorak,
+Spanish/Latin American Spanish, French/Belgian/Canadian/Swiss/Mac French,
+Croatian, Hungarian, Italian/Mac Italian, Japanese, Norwegian, Dutch,
+Portuguese/Brazilian Portuguese, Slovenian, Slovak and Swedish.
+US is built in. Every other selection requires its `.kl` file under
+`/ext/badusb/assets/layouts/`. The list is a supported catalog, not an automatic
+BLE directory scan. Ducker acknowledges the filename without `.kl`, including
+names such as `fr-FR-mac`; no payload executes on a mismatched acknowledgement.
 Text is ASCII only; arbitrary Unicode is rejected. At most 128 steps, 32
 parameters, 30 seconds per explicit delay and 120 seconds total explicit delay.
 
@@ -100,3 +107,14 @@ including bracket escaping and modifier handling. The pinned firmware builds
 against official 1.5.1 / API 88.2. These do not prove actual BLE/USB compatibility,
 numeric-comparison prompts, keyboard layout correctness or recovery on hardware.
 Real-device release gates are tracked separately; this branch is pre-beta.
+
+## USB capture tool
+
+`sh scripts/build_hid_capture.sh` builds a dedicated local test receiver under
+`Store/dist/BT Paste USB Capture.app`. It is not bundled with the Store app. It
+receives ordinary keyboard input only in its own focused text view/fields; it
+does not monitor other windows, install an event tap or request Accessibility.
+After 500 ms without edits, it atomically records text and field values in
+`Store/dist/hardware/capture.json`. These ignored test artifacts must not contain
+real clipboard secrets. A manual paste into this helper tests its instrumentation
+only, not the Flipper. USB evidence must come from a separate Flipper run.

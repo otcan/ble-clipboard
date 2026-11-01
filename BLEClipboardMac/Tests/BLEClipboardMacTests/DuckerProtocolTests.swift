@@ -1,7 +1,13 @@
 import XCTest
+import CoreBluetooth
 @testable import BLEClipboardMac
 
 final class DuckerProtocolTests: XCTestCase {
+    func testBluetoothPermissionStateIsNotReportedAsPoweredOff() {
+        XCTAssertTrue(DuckerBluetooth.unavailableStatus(for: .unknown).contains("authorization"))
+        XCTAssertTrue(DuckerBluetooth.unavailableStatus(for: .unauthorized).contains("Allow"))
+        XCTAssertTrue(DuckerBluetooth.unavailableStatus(for: .poweredOff).contains("Turn on"))
+    }
     func testCRCAndFraming() throws {
         XCTAssertEqual(DuckerProtocol.crc32(Data("123456789".utf8)), 0xCBF43926)
         XCTAssertEqual(try DuckerProtocol.frame("abc", capacity: 3), Data("TTF1 3 352441c2\nabc".utf8))
@@ -51,6 +57,20 @@ final class DuckerProtocolTests: XCTestCase {
                        [.write(Data("TTFLAYOUT tr-TR.kl\n".utf8))])
         XCTAssertEqual(try session.receive("LAYOUT:QWERTY US"), [])
         XCTAssertEqual(try session.receive("LAYOUT:tr-TR"), [.write(try DuckerProtocol.frame("abc", capacity: 65536))])
+    }
+
+    func testEveryOfferedLayoutRoundTripsAndWaitsForItsOwnAcknowledgement() throws {
+        XCTAssertEqual(MacroLayout.allCases.count, 28)
+        for layout in MacroLayout.allCases {
+            var session = DuckerSession()
+            _ = try session.receive("READY:1:65536")
+            XCTAssertEqual(try session.begin(.init(script: "abc", preview: [], layout: layout)),
+                           [.write(Data("TTFLAYOUT \(layout.rawValue)\n".utf8))])
+            XCTAssertEqual(try session.receive("LAYOUT:wrong"), [])
+            XCTAssertEqual(try session.receive("LAYOUT:\(layout.responseName)"),
+                           [.write(try DuckerProtocol.frame("abc", capacity: 65536))])
+            XCTAssertEqual(try JSONDecoder().decode(MacroLayout.self, from: JSONEncoder().encode(layout)), layout)
+        }
     }
 
     func testOnlyOneJobAndCancellationBeforeLayoutNeverTransfers() throws {
