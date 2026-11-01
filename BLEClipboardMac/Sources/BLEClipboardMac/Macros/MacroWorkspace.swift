@@ -38,6 +38,7 @@ struct MacroWorkspace: View {
                         .padding(.vertical, 6)
                         .accessibilityIdentifier("quick-paste")
                     Section("Macros") {
+                        if visible.isEmpty { Text("No matching macros").foregroundStyle(.secondary) }
                         ForEach(visible) { macro in
                             Label(macro.name, systemImage: "command.square")
                                 .tag(macro.id)
@@ -358,8 +359,14 @@ private struct MacroRunReview: View {
             }
             LabeledContent("USB Target", value: "\(macro.target.rawValue) / \(macro.layout.title)")
             LabeledContent("Flipper", value: bluetooth.isReady ? bluetooth.deviceName : "Not connected")
-            ForEach(macro.parameters) { parameter in
-                TextField(parameter.label, text: Binding(get: { values[parameter.id] ?? "" }, set: { values[parameter.id] = $0 }))
+            if !macro.parameters.isEmpty {
+                ScrollView {
+                    VStack(spacing: 10) {
+                        ForEach(macro.parameters) { parameter in
+                            TextField(parameter.label, text: Binding(get: { values[parameter.id] ?? "" }, set: { values[parameter.id] = $0 }))
+                        }
+                    }
+                }.frame(height: min(CGFloat(macro.parameters.count * 32), 160))
             }
             Divider()
             switch compiled {
