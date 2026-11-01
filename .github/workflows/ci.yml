@@ -1,0 +1,42 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests
+        working-directory: BLEClipboardMac
+        run: swift test
+      - name: Universal app and icon
+        run: BLEClipboardMac/build_app.sh --universal
+      - name: Verify bundle
+        run: |
+          codesign --verify --deep --strict "BLEClipboardMac/dist/BLE Clipboard.app"
+          lipo -verify_arch arm64 x86_64 "BLEClipboardMac/dist/BLE Clipboard.app/Contents/MacOS/BLEClipboardMac"
+
+  flipper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ufbt==0.2.6
+      - run: ufbt update --branch 1.5.1
+      - name: Build API 88.2 application
+        working-directory: BluetoothClipboard
+        run: ufbt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flipper-api-88.2
+          path: BluetoothClipboard/dist/ble_clipboard.fap

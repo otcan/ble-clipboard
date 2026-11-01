@@ -1,0 +1,34 @@
+# This workspace also holds unrelated projects and private Find My material.
+# Publish only the clipboard project, never the surrounding workspace.
+/*
+!/.gitignore
+!/.gitattributes
+!/.github/
+!/BLEClipboardMac/
+!/BluetoothClipboard/
+!/docs/
+!/scripts/
+!/packaging/
+!/README.md
+!/LICENSE
+!/NOTICE
+!/CHANGELOG.md
+!/SECURITY.md
+!/CONTRIBUTING.md
+!/VERSION
+
+**/.DS_Store
+**/.build/
+**/dist/
+**/.swiftpm/
+**/.vscode/
+**/__pycache__/
+**/*.pyc
+**/.env
+**/.env.*
+**/*.keys
+**/*.key
+**/*.pem
+**/*.p12
+**/*.mobileprovision
+**/Icon.iconset/

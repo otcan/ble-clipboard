@@ -1,0 +1,14 @@
+BLE Clipboard is an independent, unofficial project for Flipper Zero.
+It is not affiliated with Flipper Devices, Apple, or Homebrew.
+
+The Flipper application uses the public Flipper Zero firmware SDK and its
+Bluetooth, GUI, storage, and USB HID APIs. The SDK and firmware are maintained by
+Flipper Devices Inc. and contributors:
+https://github.com/flipperdevices/flipperzero-firmware
+
+Source code in this repository is licensed under GPL-3.0-only; see LICENSE.
+The SDK, firmware, Apple frameworks, and Homebrew retain their own licenses.
+
+The macOS application icon was generated using OpenAI image generation and
+adapted into Apple's ICNS sizes using sips and iconutil. The checked-in source
+PNG is the master asset. See docs/ARTWORK.md for its generation prompt.

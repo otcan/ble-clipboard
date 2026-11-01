@@ -1,0 +1,48 @@
+name: Draft Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  flipper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ufbt==0.2.6
+      - run: ufbt update --branch 1.5.1
+      - run: ufbt
+        working-directory: BluetoothClipboard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flipper-release
+          path: BluetoothClipboard/dist/ble_clipboard.fap
+
+  release:
+    needs: flipper
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flipper-release
+          path: BluetoothClipboard/dist
+      - run: swift test
+        working-directory: BLEClipboardMac
+      - name: Package universal release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: scripts/package_release.sh "${TAG#v}"
+      - name: Create draft for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/"$TAG"/* --draft --verify-tag --generate-notes
