@@ -24,10 +24,14 @@ jobs:
         run: brew install xcodegen
       - name: Validate sandboxed unsigned universal archive
         run: sh scripts/archive_store.sh
+      - name: Include matching project and firmware source
+        run: sh scripts/package_sources.sh
       - uses: actions/upload-artifact@v4
         with:
           name: store-unsigned-validation-only
-          path: Store/Archives/*.xcarchive
+          path: |
+            Store/Archives/*.xcarchive
+            Store/dist/*-source.tar.gz
 
   ducker-firmware:
     runs-on: ubuntu-latest
@@ -43,7 +47,11 @@ jobs:
       - name: Build pinned Ducker for API 88.2
         working-directory: Vendor/Ducker
         run: ufbt
+      - name: Include matching project and firmware source
+        run: sh scripts/package_sources.sh
       - uses: actions/upload-artifact@v4
         with:
           name: ducker-api-88.2-development
-          path: Vendor/Ducker/dist/trans_the_flip.fap
+          path: |
+            Vendor/Ducker/dist/trans_the_flip.fap
+            Store/dist/*-source.tar.gz

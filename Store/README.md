@@ -76,6 +76,19 @@ Developer ID and development identities. Set `STORE_BUILD_NUMBER` for each uploa
 The generated project and archive/result directories are ignored. Commit source
 and `project.yml`; regenerate the project instead of hand-editing it.
 
+## Source archives
+
+CI attaches both committed source archives alongside its development binaries.
+`sh scripts/package_sources.sh` creates them locally from Git, excluding ignored
+files and build products. For an archive-only checkout, extract the project
+archive into a working directory and the Ducker archive into `Vendor/Ducker/`
+before following the build instructions. Git submodule commands are only needed
+for a Git clone. The separate Ducker archive retains its upstream license/notices.
+
+These artifacts make the tested source available with the binaries; they do not
+replace review of Store agreements, source obligations or a permanent source
+release matching an actual submission.
+
 ## References
 
 - [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
