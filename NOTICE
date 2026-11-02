@@ -23,3 +23,10 @@ The new Mac adapter implements its public TTF1 wire protocol independently;
 the GPL firmware implementation is not linked into the macOS executable.
 scripts/tests/ducker_contract.c compiles upstream's test harness by inclusion
 for testing only, with the upstream copyright and licensing retained.
+
+DuckerCompatibility is an optional BT Paste overlay for the pinned Ducker
+source. It isolates the SDK serial profile from the firmware's automatic RPC
+registration without changing its GAP security configuration. The build script
+retains the original Bluetooth implementation as upstream_bt.inc and packages
+the complete modified source alongside the resulting FAP. This is a development
+variant, not an upstream release. See DuckerCompatibility/BUILD.md.

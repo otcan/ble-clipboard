@@ -108,6 +108,17 @@ against official 1.5.1 / API 88.2. These do not prove actual BLE/USB compatibili
 numeric-comparison prompts, keyboard layout correctness or recovery on hardware.
 Real-device release gates are tracked separately; this branch is pre-beta.
 
+The 2026-11-02 device run exposed a possible collision with the stock firmware's
+automatic RPC receiver on the serial profile. `DuckerCompatibility/BUILD.md`
+describes an optional isolated-profile variant, its SDK ownership assumptions,
+and the complete-source build artifact. It preserves the upstream submodule and
+does not relax pairing or change TTF1 UUIDs. Its real-device result is tracked
+in `HARDWARE-VALIDATION.md`; a successful compile is not a hardware pass.
+
+`scripts/probe_ducker.py --name <unique-name>` is a handshake-only diagnostic
+using Bleak. Disconnect the Mac app first. It reads serial diagnostics, enables
+indications and sends only `TTF?`; it never transfers text or sends `TTFEXEC`.
+
 ## USB capture tool
 
 `sh scripts/build_hid_capture.sh` builds a dedicated local test receiver under

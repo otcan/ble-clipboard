@@ -15,6 +15,7 @@ Inventory:
 | Existing BLE Clipboard Mac/Flipper source | Repository GPL-3.0-only; retain notices |
 | New Mac adapter, library and UI | Added under the existing repository license; no relicensing |
 | Ducker submodule | Upstream GPL-3.0-or-later source headers; pinned, unmodified |
+| Ducker compatibility overlay | Optional modified build with complete source artifact and upstream notices retained |
 | Ducker test harness | Included only in host tests; upstream notices retained |
 | Apple frameworks | System frameworks, not copied into the source tree |
 | Flipper SDK | Separately licensed build dependency, not in the Mac bundle |

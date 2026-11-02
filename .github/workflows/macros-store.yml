@@ -47,6 +47,8 @@ jobs:
       - name: Build pinned Ducker for API 88.2
         working-directory: Vendor/Ducker
         run: ufbt
+      - name: Build isolated-profile compatibility variant
+        run: sh scripts/build_ducker_compat.sh
       - name: Include matching project and firmware source
         run: sh scripts/package_sources.sh
       - uses: actions/upload-artifact@v4
@@ -55,3 +57,9 @@ jobs:
           path: |
             Vendor/Ducker/dist/trans_the_flip.fap
             Store/dist/*-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ducker-isolated-profile-api-88.2-development
+          path: |
+            Store/dist/bt_paste_ducker_compat.fap
+            Store/dist/bt-paste-ducker-compat-source.tar.gz

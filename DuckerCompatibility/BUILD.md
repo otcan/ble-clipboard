@@ -1,0 +1,27 @@
+# BT Paste Ducker compatibility build
+
+Development build, not hardware-certified. Upstream Ducker remains pinned and
+unmodified in Git. The build script archives that source and applies this small
+overlay; the resulting complete source is shipped alongside its FAP.
+
+The official firmware's BT service automatically attaches RPC to profiles whose
+`config` equals `ble_profile_serial`. The compatibility profile has a distinct
+outer identity and delegates services/GAP to the stock serial profile. Ducker
+receives the inner instance, retaining the same service UUIDs, authenticated
+attributes, bonding keys, pairing method and TTF1 protocol. It does not erase
+bonds, modify the firmware, disable authentication or add an execution command.
+
+The ownership assumptions in the proxy stop callback are pinned to SDK 1.5.1 /
+API 88.2: stock serial_stop destroys GATT services, but does not free its profile
+allocation. Review that implementation before using another SDK.
+
+From the repository: `sh scripts/build_ducker_compat.sh` (uFBT must be available).
+From the complete generated compatibility source archive: extract it, then run
+`ufbt` against official firmware SDK 1.5.1 / API 88.2. Output is
+`dist/bt_paste_ducker_compat.fap`. Keep upstream's copyright and GPL notices.
+
+Primary implementation references:
+
+- https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/applications/services/bt/bt_service/bt.c
+- https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/targets/f7/ble_glue/profiles/serial_profile.c
+- https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/targets/f7/furi_hal/furi_hal_bt.c

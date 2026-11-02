@@ -19,6 +19,7 @@
 !/.gitmodules
 !/Vendor/
 !/Store/
+!/DuckerCompatibility/
 
 **/.DS_Store
 **/.build/

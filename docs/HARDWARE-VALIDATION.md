@@ -36,3 +36,29 @@ The Mac app now surfaces the GATT error domain/code and allows cancelling a
 connection attempt. This is diagnostic work, not a bypass of authentication.
 The dedicated capture app supports ordinary Edit commands and has no global
 keyboard hook. No production document was used as the USB target.
+
+## Follow-up - 2026-11-02
+
+- User approved macOS Bluetooth access and pairing on both devices.
+- Native Mac app established the BLE link, but did not complete TTF1 setup.
+- An independent Bleak probe connected, enumerated the expected RX/TX
+  characteristics and enabled TX indications. No text frame or execute command
+  was sent by that probe.
+- User restarted Ducker Bluetooth with Hold Down, preserving bonds.
+- After that restart, the handshake write was acknowledged but no `READY`
+  response arrived before the probe timeout.
+- Read-only diagnostics reported RX buffer capacity 1,024, consistent with the
+  firmware RPC receiver rather than Ducker's configured buffer. The RPC status
+  characteristic's first byte was active. This suggests a profile ownership
+  conflict; it does not by itself establish the only failure cause.
+- A small isolated-profile overlay was built for API 88.2. Host sanitizer tests
+  verify distinct outer profile identity, original GAP configuration forwarding,
+  failure cleanup and 100 repeated start/stop cycles.
+- Compatibility FAP SHA-256:
+  `7ac4f8449e47fe21c3fcdd767db09f6520df9179fab2eb587d69a4dc581aeac1`.
+- Compatibility installation and hardware verification are pending the user
+  exiting Ducker so USB serial becomes available. No device firmware or pairing
+  key storage was changed by this overlay build.
+
+The old source/app and initial pinned Ducker FAP remain available. No physical
+typing pass or completed release gate is claimed at this checkpoint.

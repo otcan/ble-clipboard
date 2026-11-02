@@ -12,3 +12,6 @@ CC=${CC:-cc}
 "$CC" -std=c11 -Wall -Wextra -Werror -I"$ROOT/Vendor/Ducker/tests/stubs" \
     "$ROOT/scripts/tests/ducker_contract.c" "$ROOT/Vendor/Ducker/trans_the_flip_hid.c" -o "$BUILD/contract"
 "$BUILD/contract"
+"$CC" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+    "$ROOT/scripts/tests/ducker_profile.c" -o "$BUILD/profile"
+"$BUILD/profile"
