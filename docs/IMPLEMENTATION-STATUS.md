@@ -29,8 +29,9 @@ physical hardware evidence, and Apple's approval cannot be fabricated.
 
 ## Evidence and remaining boundary
 
-Local Swift tests: 26 passing, including all 28 layout serialization cases and
-explicit Bluetooth permission-state diagnostics.
+Local Swift tests: 28 passing, including all 28 layout serialization cases,
+explicit Bluetooth permission-state diagnostics and missing intermediate-status
+handling.
 The earlier Xcode run passed 24 unit plus 2 UI checks
 (create/edit and offline review). Host C tests cover upstream protocol/HID plus
 the Mac serialization contract. Ducker is pinned, unmodified and builds as a FAP
@@ -48,7 +49,17 @@ but no hardware end-to-end typing pass is claimed. After macOS authorization,
 both clients reproduced a missing TTF1 response with the upstream serial profile.
 The separate compatibility FAP was installed and checksum-verified; it fixes the
 observed RPC/profile conflict and both clients now complete TTF1 setup.
-Controlled typing is paused pending exclusive use of the two test windows.
+After exclusive control was granted, a controlled 28-byte USB sample matched
+exactly in the dedicated capture app. Completion reporting then timed out;
+a follow-up status-reliability build passes host tests, is installed with a
+matching USB read-back, and now reports native completion without disconnecting.
+Its first repeat target capture was empty, and helper instrumentation showed an
+inactive target window. After the owner focused the capture, exact 28-byte and
+4,160-byte sends passed with completion and a retained connection. Parameterized
+two-field output, cancellation during a 30-second delay and a bonded reconnect
+without replay also passed. The full-ASCII sample exposed a Turkish-Q punctuation
+and dead-key mismatch on this Mac; that and the broader hardware matrix remain
+open. Native JSON fixture import was also exercised successfully.
 See `HARDWARE-VALIDATION.md` for the exact checkpoint. The capture helper is a
 separate, non-shipping development tool, not a Store entitlement change.
 The local keychain has development/Developer ID identities, but no suitable

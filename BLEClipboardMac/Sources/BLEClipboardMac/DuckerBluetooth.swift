@@ -242,7 +242,7 @@ extension DuckerBluetooth: CBCentralManagerDelegate {
         guard item == peripheral else { return }
         isConnected = true
         Self.logger.notice("BLE link connected; discovering serial service")
-        status = "Confirm the Bluetooth pairing code on both devices"
+        status = "Discovering Ducker service..."
         item.discoverServices([Self.service])
     }
 
@@ -267,6 +267,7 @@ extension DuckerBluetooth: CBPeripheralDelegate {
             return
         }
         item.discoverCharacteristics([Self.rx, Self.tx], for: service)
+        status = "Discovering serial characteristics..."
     }
 
     func peripheral(_ item: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
@@ -279,11 +280,13 @@ extension DuckerBluetooth: CBPeripheralDelegate {
             return
         }
         item.setNotifyValue(true, for: tx)
+        status = "Securing the status channel; approve pairing if prompted"
     }
 
     func peripheral(_ item: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard item == peripheral, characteristic == tx else { return }
         guard error == nil, characteristic.isNotifying else { fail("Could not subscribe to Flipper status."); return }
+        status = "Checking Ducker protocol..."
         enqueue(DuckerProtocol.hello)
     }
 
@@ -312,6 +315,9 @@ extension DuckerBluetooth: CBPeripheralDelegate {
         do {
             let lines = try decoder.append(value)
             for line in lines {
+                if ["RECV", "WAIT_USB", "SENDING", "OK", "CANCEL"].contains(line) {
+                    Self.logger.notice("Ducker control \(line, privacy: .public), stage \(self.session.stage.rawValue, privacy: .public)")
+                }
                 if isBusy { watchJob() }
                 handle(try session.receive(line))
                 if peripheral == nil { break }

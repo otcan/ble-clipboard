@@ -39,6 +39,30 @@ final class DuckerProtocolTests: XCTestCase {
         XCTAssertEqual(session.stage, .idle)
     }
 
+    func testCompletionDoesNotRequireAnIntermediateSendingStatus() throws {
+        var session = DuckerSession()
+        _ = try session.receive("READY:1:65536")
+        XCTAssertEqual(try session.receive("OK"), [])
+        _ = try session.begin(.init(script: "test", preview: [], layout: .us))
+        XCTAssertEqual(try session.receive("OK"), [])
+        _ = try session.receive("LAYOUT:QWERTY US")
+        XCTAssertEqual(try session.receive("OK"), [])
+        _ = try session.receive("RECV")
+        XCTAssertEqual(try session.receive("OK"), [.done(cancelled: false)])
+        XCTAssertEqual(session.stage, .idle)
+    }
+
+    func testProgressCanEstablishExecutionWhenSendingStatusIsMissing() throws {
+        var session = DuckerSession()
+        _ = try session.receive("READY:1:65536")
+        _ = try session.begin(.init(script: "test", preview: [], layout: .us))
+        _ = try session.receive("LAYOUT:QWERTY US")
+        _ = try session.receive("RECV")
+        XCTAssertEqual(try session.receive("PROGRESS:50"), [.accepted, .progress(0.5)])
+        XCTAssertEqual(try session.receive("PROGRESS:75"), [.progress(0.75)])
+        XCTAssertEqual(try session.receive("OK"), [.done(cancelled: false)])
+    }
+
     func testCancellationDuringReceiveNeverExecutes() throws {
         var session = DuckerSession()
         _ = try session.receive("READY:1:65536")

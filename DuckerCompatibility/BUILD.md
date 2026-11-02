@@ -1,9 +1,13 @@
 # BT Paste Ducker compatibility build
 
-Development build; live BLE handshakes verified on official 1.5.1/API 88.2, but
-USB delivery and the full release matrix are not yet verified. Upstream remains pinned and
-unmodified in Git. The build script archives that source and applies this small
-overlay; the resulting complete source is shipped alongside its FAP.
+Development build; live BLE handshakes are verified on official 1.5.1/API 88.2.
+The status-retry build delivered exact 28-byte and 4,160-byte samples and reported
+completion without disconnecting. Delay cancellation, parameterized field output
+and bonded reconnect without replay also passed. Turkish-Q punctuation on the
+test Mac and the broader release matrix remain open. Upstream remains pinned
+and unmodified in Git.
+The build script archives that source and applies this small overlay; the
+resulting complete source is shipped alongside its FAP.
 
 The official firmware's BT service automatically attaches RPC to profiles whose
 `config` equals `ble_profile_serial`. The compatibility profile has a distinct
@@ -11,6 +15,10 @@ outer identity and delegates services/GAP to the stock serial profile. Ducker
 receives the inner instance, retaining the same service UUIDs, authenticated
 attributes, bonding keys, pairing method and TTF1 protocol. It does not erase
 bonds, modify the firmware, disable authentication or add an execution command.
+
+The overlay retries rejected outgoing status indications with a bounded 32-attempt
+budget and 10 ms gaps. It does not replay payloads or HID actions. Host tests
+verify immediate success, transient backpressure and permanent rejection.
 
 The ownership assumptions in the proxy stop callback are pinned to SDK 1.5.1 /
 API 88.2: stock serial_stop destroys GATT services, but does not free its profile

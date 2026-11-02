@@ -15,3 +15,6 @@ CC=${CC:-cc}
 "$CC" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
     "$ROOT/scripts/tests/ducker_profile.c" -o "$BUILD/profile"
 "$BUILD/profile"
+"$CC" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+    "$ROOT/scripts/tests/ducker_status_retry.c" -o "$BUILD/status-retry"
+"$BUILD/status-retry"

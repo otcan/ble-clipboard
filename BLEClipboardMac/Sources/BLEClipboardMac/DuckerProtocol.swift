@@ -55,7 +55,7 @@ struct DuckerLineDecoder {
 }
 
 struct DuckerSession {
-    enum Stage: Equatable { case idle, layout, receiving, verified, executing, cancelling }
+    enum Stage: String, Equatable { case idle, layout, receiving, verified, executing, cancelling }
     enum Event: Equatable {
         case write(Data), ready(Int), cancelCapability, accepted, progress(Double), waitingUSB
         case done(cancelled: Bool), failed(String), disconnectToCancel
@@ -124,17 +124,19 @@ struct DuckerSession {
             if cancelRequested { return cancelNow() }
             return [.accepted]
         }
-        if stage == .executing, line.hasPrefix("PROGRESS:") {
+        if [.verified, .executing].contains(stage), line.hasPrefix("PROGRESS:") {
             guard let percent = Int(line.dropFirst(9)), (0...100).contains(percent) else {
                 throw MacroError.invalid("Invalid progress response.")
             }
-            return [.progress(Double(percent) / 100)]
+            let started = stage == .verified
+            stage = .executing
+            return (started ? [.accepted] : []) + [.progress(Double(percent) / 100)]
         }
         if [.executing, .verified, .cancelling].contains(stage), line == "CANCEL" {
             resetJob()
             return [.done(cancelled: true)]
         }
-        if [.executing, .cancelling].contains(stage), line == "OK" {
+        if [.verified, .executing, .cancelling].contains(stage), line == "OK" {
             resetJob()
             return [.done(cancelled: false)]
         }

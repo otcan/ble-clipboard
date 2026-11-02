@@ -7,6 +7,9 @@ struct CaptureSnapshot: Encodable {
     let firstField: String
     let secondField: String
     let changeCount: Int
+    let applicationActive: Bool
+    let windowKey: Bool
+    let textFocused: Bool
 }
 
 final class CaptureDelegate: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSTextFieldDelegate {
@@ -113,6 +116,12 @@ final class CaptureDelegate: NSObject, NSApplicationDelegate, NSTextViewDelegate
 
     func textDidChange(_ notification: Notification) { changed() }
     func controlTextDidChange(_ obj: Notification) { changed() }
+    func applicationDidBecomeActive(_ notification: Notification) {
+        if window != nil { snapshotNow() }
+    }
+    func applicationDidResignActive(_ notification: Notification) {
+        if window != nil { snapshotNow() }
+    }
     private func changed() {
         changes += 1
         status.stringValue = "\(textView.string.utf8.count) text bytes; \(changes) changes"
@@ -130,15 +139,27 @@ final class CaptureDelegate: NSObject, NSApplicationDelegate, NSTextViewDelegate
         snapshotNow()
         focusText()
     }
-    @objc private func focusText() { window.makeFirstResponder(textView) }
-    @objc private func focusFirst() { window.makeFirstResponder(first) }
+    private func activateCapture() {
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+    @objc private func focusText() {
+        activateCapture()
+        window.makeFirstResponder(textView)
+    }
+    @objc private func focusFirst() {
+        activateCapture()
+        window.makeFirstResponder(first)
+    }
     @objc private func snapshotNow() {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(CaptureSnapshot(capturedAt: Date(), text: textView.string,
-                firstField: first.stringValue, secondField: second.stringValue, changeCount: changes))
+                firstField: first.stringValue, secondField: second.stringValue, changeCount: changes,
+                applicationActive: NSApp.isActive, windowKey: window.isKeyWindow,
+                textFocused: window.firstResponder === textView))
             try FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: output, options: .atomic)
             status.stringValue = "\(textView.string.utf8.count) text bytes; \(changes) changes; snapshot saved"

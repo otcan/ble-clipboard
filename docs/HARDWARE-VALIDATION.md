@@ -90,3 +90,84 @@ typing pass or completed release gate is claimed at this checkpoint.
 **Passed:** install/read-back, independent TTF1 handshake, native TTF1 handshake.
 **Not yet verified:** controlled USB delivery, literal brackets/whitespace,
 macro parameters, cancellation, large transfers and interruption recovery.
+
+## Controlled USB smoke test
+
+- The owner granted exclusive use of the preview and dedicated capture windows.
+- Reviewed and explicitly ran the 28-byte literal `BT Paste controlled test 123`
+  using Turkish Q, with the preview hidden before output.
+- The native capture recorded exactly those 28 bytes and 28 text changes. This
+  verifies target delivery and focus restoration for this sample, not every
+  layout or macro type.
+- The Mac app subsequently timed out waiting for completion and disconnected.
+  Therefore the complete run lifecycle did not pass, despite correct delivery.
+- A follow-up build accepts completion after verified execution was requested
+  even when the intermediate `SENDING` status is missing. The compatibility
+  overlay also retries only rejected status indications, at most 32 attempts
+  with 10 ms gaps; it never retries a received job or HID action.
+- All 28 Swift tests and host sanitizer checks pass, including the missing
+  intermediate-status and bounded status-retry cases. The updated firmware
+  compiles for API 88.2. Installation and a repeated live run are pending.
+
+## Status-reliability build installation
+
+- The owner exited Ducker. The previous compatibility FAP was backed up and
+  checked against the device checksum before replacement.
+- Installed status-retry FAP SHA-256:
+  `312d48253ee572be543cf447608d56a958c6b1c8691c86e166b64c0a23b45aa4`.
+  Full USB read-back matched the build and device checksum.
+- The native preview reconnected and completed TTF1 setup without a bond reset.
+- An explicitly reviewed 28-byte sample produced native control messages
+  `RECV`, `SENDING`, then `OK`. The preview displayed **USB output complete**
+  and remained connected instead of reaching the prior watchdog timeout.
+- The target capture remained empty on this attempt. Additional instrumentation
+  showed the helper's editor selected while its application and window were
+  inactive. Therefore this attempt verifies completion reporting, not target
+  delivery; no complete end-to-end pass is inferred.
+- The non-shipping helper now records its own active/key/focus state and has
+  explicit activation in its Focus buttons. Automated activation still did not
+  establish a verified active target. Further output is paused until the owner
+  manually focuses the dedicated capture editor.
+
+## Controlled delivery after manual focus
+
+The owner focused the capture editor. Its persisted application-active,
+key-window and editor-focus indicators were true before subsequent text runs.
+All samples below were explicitly reviewed and executed, using Turkish Q on
+the same official 1.5.1/API 88.2 device. Only the dedicated capture app received
+test input; no system clipboard contents were used as payloads.
+
+| Check | Observed result |
+| --- | --- |
+| 28-byte literal smoke sample | Exact match, 28 input changes; `RECV`, `SENDING`, `OK`; remained connected |
+| Literal command-looking brackets | `[ENTER]`, `[WIN+r]`, `[]` and `{{clipboard}}` appeared as text, not commands/templates |
+| Tab and LF in plain text | Present in the native capture |
+| Full printable ASCII | Failed exact comparison; Turkish-Q punctuation/dead-key mismatch described below |
+| JSON import through native file picker | Benign two-macro fixture imported into the preview library |
+| Parameterized field navigation | First field exactly `Ada`, second exactly `Lovelace`; no text in the large editor |
+| Stop during 30-second delay | Captured `before`; Stop disconnected; after the original delay elapsed, still six changes and no `AFTER` |
+| Bonded reconnect after Stop | Native handshake succeeded; capture unchanged, no replayed output |
+| 4,160-byte literal / SD-backed send | Exactly 4,160 bytes and 4,160 input changes; `OK` received; remained connected |
+
+The large sample was `0123456789abcdef` repeated 260 times. Its receive
+acknowledgement arrived at 12:27:21 UTC and completion at 12:28:57 UTC. A UI status
+read timed out during continuous typing; no focus-changing recovery was attempted.
+The final persisted native capture matched exactly and remained active/key/focused.
+
+Local, ignored capture artifacts are under `Store/dist/hardware`, including
+`status-retry-smoke-capture.json`, `ascii-layout-capture.json`,
+`two-fields-capture.json`, `cancel-delay-capture.json`, `reconnect-capture.json`
+and `large-transfer-capture.json`. They contain only the benign test samples.
+
+### Open layout finding
+
+The stock `tr-TR.kl` asset did not produce all printable ASCII correctly with
+this Mac's Turkish QWERTY PC input source. Double quote, less-than, vertical bar
+and grave accent differed; the grave accent combined with the following letter
+as a dead key. Correct plain letters and brackets do not certify the whole
+layout. Resolve or explicitly limit this combination before release, and test
+other targets/layouts separately. No system input-source setting was changed.
+
+The current preview is connected and idle with a short benign draft. No run is
+queued. USB/cable loss, sleep/power-cycle, first-pairing rejection, other OSes,
+other layouts, near-maximum payloads and other cancellation stages remain open.

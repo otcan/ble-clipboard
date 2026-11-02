@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "macros": [
+    {
+      "id": "34B998CC-1995-49FD-AE93-1607E2AF5211",
+      "name": "Hardware Test - Two Fields",
+      "target": "macOS",
+      "layout": "tr-TR.kl",
+      "steps": [
+        { "id": "EA984DD7-EF12-4E4D-9DAC-4BF634D44E2D", "kind": "template", "value": "{{first}}", "milliseconds": 250 },
+        { "id": "7D8EAF2E-B46C-4489-8B9F-62955A8ED408", "kind": "chord", "value": "TAB", "milliseconds": 250 },
+        { "id": "B3915412-B4AD-4E09-A247-16D1FFAFD4EF", "kind": "template", "value": "{{second}}", "milliseconds": 250 }
+      ],
+      "parameters": [
+        { "id": "first", "label": "First field" },
+        { "id": "second", "label": "Second field" }
+      ],
+      "updatedAt": 0
+    },
+    {
+      "id": "92852D59-604C-4BBF-93A0-E859923563B6",
+      "name": "Hardware Test - Cancel Delay",
+      "target": "macOS",
+      "layout": "tr-TR.kl",
+      "steps": [
+        { "id": "1DECE198-F548-4C02-B72A-D86202DB08F7", "kind": "text", "value": "before", "milliseconds": 250 },
+        { "id": "F586CD4B-390F-4268-9EEB-01432F2082B2", "kind": "delay", "value": "", "milliseconds": 30000 },
+        { "id": "AFF33264-56DA-4878-A32C-32208D37A1A5", "kind": "text", "value": "AFTER", "milliseconds": 250 }
+      ],
+      "parameters": [],
+      "updatedAt": 0
+    }
+  ]
+}

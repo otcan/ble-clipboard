@@ -15,6 +15,9 @@ Unchecked means not verified, not optional. Attach evidence to a release issue.
 
 ## Physical device matrix
 
+- [x] One official 1.5.1/API 88.2 device: exact 28-byte and 4,160-byte captures; completion and retained connection.
+- [x] Same Mac: parameterized two-field output, Stop during a 30-second delay, bonded reconnect without replay.
+- [ ] Resolve Turkish QWERTY PC punctuation/dead-key mismatch observed in the full-ASCII sample.
 - [ ] First pairing shows expected two-device confirmation; wrong/unpaired Mac denied.
 - [ ] Reconnect works, with no replay and no stale queued output.
 - [ ] macOS, Windows and Linux targets: supported shortcuts and US output verified.

@@ -35,6 +35,7 @@ targets:
       base:
         INFOPLIST_FILE: Info.plist
         PRODUCT_NAME: BLE Clipboard Macros
+        APP_DISPLAY_NAME: BLE Clipboard
         PRODUCT_MODULE_NAME: BLEClipboardMac
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MACROS_STORE"
         PRODUCT_BUNDLE_IDENTIFIER: com.oguzcanunver.BLEClipboardMac
@@ -46,6 +47,7 @@ targets:
       configs:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.oguzcanunver.BLEClipboardMac.MacrosPreview
+          APP_DISPLAY_NAME: BLE Clipboard Preview
         Release:
           CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
   BLEClipboardUnitTests:
