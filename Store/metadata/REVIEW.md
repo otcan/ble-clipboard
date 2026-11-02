@@ -11,7 +11,9 @@ as required by Apple; do not claim the accessory is included with the purchase.
 
 Review path:
 
-1. Open DuckerTheFlipper on the Flipper, with its Bluetooth enabled.
+1. Open the matching **BT Paste Ducker** compatibility app on the Flipper, with
+   its Bluetooth enabled. Do not substitute the unmodified upstream FAP for the
+   official 1.5.1 test configuration; see the compatibility build instructions.
 2. Launch the Mac app; press Connect, choose the correct Flipper under Devices,
    and approve any pairing prompts on both devices.
 3. Connect Flipper USB to a second computer with a plain text editor focused.
@@ -26,6 +28,9 @@ Review path:
 Current development pin: Ducker commit
 `9d706967f7006702c9db3368235e6b6495176a46`, official firmware 1.5.1/API 88.2 build.
 Replace with exact hardware-verified release identifiers at submission time.
+The compatibility source overlay is in `DuckerCompatibility/`; its complete
+generated source archive accompanies the FAP. Only BLE setup is verified at the
+current checkpoint, not the complete physical demonstration.
 
 No accessibility permission, screen capture, root helper, downloaded executable,
 Mac shell execution, built-in updater or target OS clipboard access is used by

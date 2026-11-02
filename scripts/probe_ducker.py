@@ -48,7 +48,10 @@ async def probe(name: str) -> None:
             value = await asyncio.wait_for(client.read_gatt_char(uuid), 8)
             if len(value) != 4:
                 raise RuntimeError(f"Unexpected {title} response length")
-            print(title + ":", int.from_bytes(value, order), flush=True)
+            if uuid == RPC_STATUS:
+                print("RPC active flag:", value[0], flush=True)
+            else:
+                print(title + ":", int.from_bytes(value, order), flush=True)
         await asyncio.wait_for(client.start_notify(TX, notification), 15)
         print("Status subscription enabled; sending TTF? only...", flush=True)
         await asyncio.wait_for(client.write_gatt_char(RX, b"TTF?\n", response=True), 15)

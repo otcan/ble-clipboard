@@ -1,6 +1,7 @@
 # BT Paste Ducker compatibility build
 
-Development build, not hardware-certified. Upstream Ducker remains pinned and
+Development build; live BLE handshakes verified on official 1.5.1/API 88.2, but
+USB delivery and the full release matrix are not yet verified. Upstream remains pinned and
 unmodified in Git. The build script archives that source and applies this small
 overlay; the resulting complete source is shipped alongside its FAP.
 
@@ -14,6 +15,11 @@ bonds, modify the firmware, disable authentication or add an execution command.
 The ownership assumptions in the proxy stop callback are pinned to SDK 1.5.1 /
 API 88.2: stock serial_stop destroys GATT services, but does not free its profile
 allocation. Review that implementation before using another SDK.
+
+On the test device, this variant changed the observed receive buffer from
+1,024 to 486 bytes and produced the missing TTF1 `READY` response. The native
+Mac client then connected successfully. See `docs/HARDWARE-VALIDATION.md` in the
+BT Paste repository for the detailed verification boundary.
 
 From the repository: `sh scripts/build_ducker_compat.sh` (uFBT must be available).
 From the complete generated compatibility source archive: extract it, then run

@@ -44,8 +44,11 @@ The initial implementation left the parent worktree, installed Mac app and
 connected Flipper unchanged. On the owner's subsequent request, Ducker was
 installed separately on the Flipper and verified by USB read-back checksum.
 The original app and firmware were not overwritten. Live discovery succeeded,
-but no hardware end-to-end pass is claimed: setup encountered a GATT write
-failure, then the diagnostic rebuild awaited macOS Bluetooth authorization.
+but no hardware end-to-end typing pass is claimed. After macOS authorization,
+both clients reproduced a missing TTF1 response with the upstream serial profile.
+The separate compatibility FAP was installed and checksum-verified; it fixes the
+observed RPC/profile conflict and both clients now complete TTF1 setup.
+Controlled typing is paused pending exclusive use of the two test windows.
 See `HARDWARE-VALIDATION.md` for the exact checkpoint. The capture helper is a
 separate, non-shipping development tool, not a Store entitlement change.
 The local keychain has development/Developer ID identities, but no suitable

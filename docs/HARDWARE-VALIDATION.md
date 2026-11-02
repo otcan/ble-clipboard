@@ -62,3 +62,31 @@ keyboard hook. No production document was used as the USB target.
 
 The old source/app and initial pinned Ducker FAP remain available. No physical
 typing pass or completed release gate is claimed at this checkpoint.
+
+## Compatibility installation and handshake
+
+- The owner exited Ducker, restoring USB serial access.
+- Installed the compatibility app separately at
+  `/ext/apps/GPIO/bt_paste_ducker_compat.fap`, displayed as **BT Paste Ducker**.
+  The initial transfer was interrupted after overlapping CLI clients; both
+  clients were stopped, the CLI recovered, and the transfer was redone in one
+  exclusive serial session. No incomplete file was launched.
+- Full USB read-back matched the local build's MD5 and SHA-256. SHA-256 remains
+  `7ac4f8449e47fe21c3fcdd767db09f6520df9179fab2eb587d69a4dc581aeac1`.
+- The independent BLE probe reported RPC inactive, receive buffer 486 bytes,
+  `READY:1:65536` and `LAYOUT:QWERTY US`. It sent no typing payload or execute
+  command. This verifies the profile-isolation fix for the observed handshake
+  failure on this device/firmware.
+- The native Mac preview then completed its own handshake and displayed
+  **Ducker connected**. Its live picker showed all 28 layouts; Turkish Q was
+  selected to match the test Mac.
+- A 17-byte harmless sample was reviewed, but before the controlled run was
+  started the preview's draft changed and it reported completion for different
+  content. The dedicated capture file still contained zero input changes.
+  No unexpected content was copied into this report.
+- Controlled typing tests were paused pending exclusive control of the preview
+  and capture windows. UI completion alone is not proof of target receipt.
+
+**Passed:** install/read-back, independent TTF1 handshake, native TTF1 handshake.
+**Not yet verified:** controlled USB delivery, literal brackets/whitespace,
+macro parameters, cancellation, large transfers and interruption recovery.
