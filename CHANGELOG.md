@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.5.2 - Unreleased
+## 0.5.2 - 2026-11-03
 
+- First independent public release, combining the clipboard, macro, 28-layout,
+  standalone, SD-library and ranged Move Mouse/Repeat work from local 0.3-0.5.1
+  builds. Earlier public 0.1.0 artifacts remain unchanged.
 - Info & Companions on the Mac toolbar and Help menu: actual app versions,
   compatibility, matching Mac/FAP downloads, checksums, source and support links.
 - Anonymous, on-demand checks of the exact GitHub release; both downloads stay
@@ -12,7 +15,7 @@
 - Optional read-only protocol-4 version query: older clients still connect, older
   companions show Unknown, and querying metadata never starts or changes a job.
 - Retained the 0.5.1 button-release guard and existing macro/snapshot formats.
-  The installed 0.5.1 pair is not replaced by building this release.
+  Installed apps are not replaced by building or publishing this release.
 - Read-only Flipper --info launch path for qFlipper inspection/screenshots,
   returning before Bluetooth, HID or saved-library setup. Shared normal/Info-only
   views use a compact QR code button without footer overlap.

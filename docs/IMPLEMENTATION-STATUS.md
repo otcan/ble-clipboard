@@ -5,10 +5,11 @@ version reporting and an on-device About/release QR screen. It preserves the
 0.5.1 movement guard and macro/snapshot formats. After explicit owner readiness
 on 2026-11-03, both 0.5.2 apps were installed with 0.5.1 backups. Mac signature,
 architectures, version and full Flipper readback/checksum checks passed. The
-installed Mac Info panel shows 0.5.2; its real release check returns Not published
-yet with both downloads disabled. The macro library is byte-for-byte unchanged.
-The Flipper app was left idle/closed; no live input was generated. This is still
-a local development build, not a published or notarized release.
+installed Mac Info panel showed 0.5.2; before publication its release check returned
+Not published yet with both downloads disabled. The macro library was unchanged.
+The Flipper app was left idle/closed; no live input was generated. That installation
+used an ad-hoc development build. Public release assets are finalized separately;
+use their checksums and signing verification, not an old local build receipt.
 
 The publication candidate now has a read-only --info launch path and a compact
 QR code button. After owner approval, a temporary FAP was used for genuine
@@ -93,5 +94,6 @@ Old backend device results are history, not a pass for this replacement.
 
 Store licensing/rights review, owner-confirmed seller/price/identifiers, agreements,
 permanent privacy/support URLs, proper Store signing/profile, beta feedback,
-review demonstration and Apple approval also remain open. Do not claim release
-readiness or reuse an old notarization ticket for this different binary.
+review demonstration and Apple approval also remain open. Do not claim Store
+approval or full hardware certification, or reuse an old notarization ticket
+for a different binary.

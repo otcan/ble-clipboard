@@ -28,8 +28,10 @@ own or are authorized to operate. Newlines and tabs have normal key behavior.
 - Normal jobs stop on BLE loss. Explicit standalone jobs continue after Mac quit
   or disconnection; physical Left/Back must remain accessible. USB loss always
   stops, and no run resumes automatically on cable reconnection or power-up.
-- Early release artifacts are ad-hoc signed and not notarized. Inspect checksums
-  and source; do not disable operating-system security protections.
+- Source builds default to ad-hoc signing; public Mac release finalization uses
+  Developer ID signing and Apple notarization. Inspect the published checksums,
+  source and Gatekeeper assessment; do not disable OS security protections.
+  Historical 0.1.0 downloads remain ad-hoc signed and unnotarized.
 
 ## Reporting
 

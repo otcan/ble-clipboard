@@ -66,7 +66,7 @@ The default signature is ad-hoc. It verifies integrity, not Developer ID identit
 or notarization. No packaging command publishes, submits to Apple, installs the
 apps or changes the user's running processes/device.
 
-For a later authorized signed release, configure Developer ID locally, use
+For an authorized signed release, configure Developer ID locally, use
 `scripts/notarize_release.sh 0.5.2` deliberately, then staple/verify and generate
 the Homebrew cask from the final ZIP. Never rerun a rebuild/resubmit script to
 resume a pending notarization. Never export signing keys or put credentials in
@@ -88,13 +88,21 @@ for this check; no other runtime HTTP service is introduced. Preview identities
 ending in `.InfoPreview`, like `--ui-testing`, use a temporary library, no BLE and
 an offline unpublished-release result. This does not certify the sandboxed target.
 
-## Publish Later
+## Publish
 
-Pass the hardware/release checklist first. Commit the actual tested source,
-push and tag that revision. The workflow creates an ad-hoc draft, not an automatic
-public release. Replace every draft artifact as one matching set if preparing a
-locally signed/notarized release, including the FAP and both source archives.
-Never overwrite assets of an already public immutable version.
+Review the hardware/release checklist and disclose remaining validation gaps.
+Commit the actual tested source, push and tag that revision. The tag workflow
+creates an ad-hoc draft, not an automatic public release. A draft can be prepared
+while notarization processes, but must stay unpublished until Apple's submission
+is Accepted and the final ZIP passes stapler validation, deep/strict codesign,
+team/version/architecture checks and Gatekeeper's Notarized Developer ID assessment.
+
+After the tag workflow succeeds, replace every draft asset as one matching set:
+ZIP, FAP, SHA256SUMS.txt, README, NOTICE, LICENSE, both source archives and FAP
+source fingerprints. In particular, never retain a workflow FAP beside checksums
+for a different local FAP. Refresh documentation/source assets without rebuilding
+the accepted Mac bundle. Verify the draft's downloaded set before publishing and
+the public downloaded set afterward. Never overwrite an already public version.
 
 Generate the cask with `scripts/generate_cask.py` from the final ZIP only after
 the public URL/checksum match. Do not update the installed app or tap as part of

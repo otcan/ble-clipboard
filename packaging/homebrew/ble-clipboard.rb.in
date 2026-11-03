@@ -16,8 +16,6 @@ cask "ble-clipboard" do
       https://github.com/otcan/ble-clipboard/releases/tag/v#{version}
     Open Apps > Bluetooth > BLE Clipboard. Update both apps to this version.
 
-    This early release is ad-hoc signed, not Apple-notarized.
-    macOS may require explicit approval in Privacy & Security.
     Gatekeeper remains enabled; this cask does not bypass it.
   EOS
 end
