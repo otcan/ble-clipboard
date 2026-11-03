@@ -13,6 +13,9 @@
   companions show Unknown, and querying metadata never starts or changes a job.
 - Retained the 0.5.1 button-release guard and existing macro/snapshot formats.
   The installed 0.5.1 pair is not replaced by building this release.
+- Read-only Flipper --info launch path for qFlipper inspection/screenshots,
+  returning before Bluetooth, HID or saved-library setup. Shared normal/Info-only
+  views use a compact QR code button without footer overlap.
 
 ## 0.5.1 - Unreleased
 

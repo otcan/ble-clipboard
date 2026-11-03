@@ -16,8 +16,8 @@ def main():
     root = Path(__file__).resolve().parent.parent
     firmware = args.firmware.resolve()
     u8g2 = firmware / "lib/u8g2"
-    destination = root / "BluetoothClipboard/screenshots"
-    destination.mkdir(exist_ok=True)
+    destination = root / "dist/catalog-preview"
+    destination.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temp:
         build = Path(temp)
         icons = []

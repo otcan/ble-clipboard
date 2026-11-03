@@ -69,16 +69,9 @@ int main(int argc, char** argv) {
     Canvas canvas = {0};
     canvas.fb.u8x8.display_info = &display;
     u8g2_SetupBuffer(&canvas.fb, canvas.pixels, 8, u8g2_ll_hvline_vertical_top_lsb, U8G2_R0);
-    ClipboardScreen screen = {.selected = -1};
-    if(strcmp(argv[1], "downloads") == 0) screen.companion_qr = true;
-    else {
-        assert(strcmp(argv[1], "info") == 0);
-        snprintf(screen.lines[0], 80, "Version " CLIPBOARD_APP_VERSION);
-        snprintf(screen.lines[1], 80, "Protocol 4");
-        snprintf(screen.lines[2], 80, "Build API %u.%u", CLIPBOARD_BUILD_API_MAJOR, CLIPBOARD_BUILD_API_MINOR);
-        snprintf(screen.lines[3], 80, "GPL-3.0-only");
-        snprintf(screen.left, 12, "Back"); snprintf(screen.center, 12, "QR code");
-    }
+    assert(strcmp(argv[1], "downloads") == 0 || strcmp(argv[1], "info") == 0);
+    ClipboardScreen screen;
+    clipboard_screen_info(&screen, strcmp(argv[1], "downloads") == 0);
     clipboard_screen_draw(&canvas, &screen);
     return fwrite(canvas.pixels, 1, sizeof(canvas.pixels), stdout) == sizeof(canvas.pixels) ? 0 : 1;
 }

@@ -7,6 +7,11 @@ if [ "$(uname -s)" = Darwin ]; then
     swift "$ROOT/scripts/generate_companion_assets.swift" --check
 fi
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+    -I"$ROOT/scripts/tests/info_stub" \
+    "$ROOT/scripts/tests/clipboard_info.c" "$ROOT/BluetoothClipboard/clipboard_info.c" \
+    -o "$BUILD/info-tests"
+"$BUILD/info-tests"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
     -I"$ROOT/scripts/tests/hid_stub" \
     "$ROOT/scripts/tests/clipboard_hid.c" -o "$BUILD/hid-tests"
 "$BUILD/hid-tests"

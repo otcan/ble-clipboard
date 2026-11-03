@@ -41,6 +41,14 @@ The build outputs are `BLEClipboardMac/dist/BLE Clipboard.app` and
 corresponding source and source fingerprints. It never calls `ufbt launch`.
 Installation requires normal USB serial mode after the owner exits the old app.
 
+For read-only Info inspection or qFlipper screenshots, launch the FAP with the
+`--info` argument through the firmware loader. This opens the same Info/QR views
+and returns before any Bluetooth, USB HID or saved-library setup. OK opens the QR;
+Left/Back returns, then exits. It cannot receive, save or execute a job. Normal
+launch is unchanged. Host-rendered screen previews are also available with
+`scripts/render_catalog_screens.py` and official firmware 1.5.1 source; those
+previews go to ignored `dist/catalog-preview`, never over genuine screenshots.
+
 ## Package 0.5.2
 
 ```sh

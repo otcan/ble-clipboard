@@ -19,8 +19,8 @@ No Apple keyboard layout binary or private framework is redistributed.
 The macOS icon was generated using OpenAI image generation and adapted into
 Apple's ICNS sizes using sips and iconutil. See docs/ARTWORK.md.
 
-Catalog screenshots use the actual screen renderer with official firmware 1.5.1
-u8g2/font/button resources through a host-only adapter. Firmware GUI behavior is
-GPL-3.0 licensed; u8g2 retains its upstream BSD license and font notices. No
-firmware library or font source is vendored by the adapter. See the provenance
-under BluetoothClipboard/screenshots and the official firmware source above.
+Catalog screenshots are unmodified qFlipper exports. The optional host preview
+adapter uses official firmware 1.5.1 u8g2/font/button resources. Firmware GUI
+behavior is GPL-3.0 licensed; u8g2 retains its upstream BSD license and font
+notices. No firmware library or font source is vendored by the adapter. See the
+provenance under BluetoothClipboard/screenshots and the firmware source above.

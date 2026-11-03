@@ -1,19 +1,19 @@
 # Screenshot Provenance
 
-BLE Clipboard takes over USB as a keyboard/mouse, disconnecting qFlipper.
-These images use the Flipper catalog AGENTS.md exception for USB-HID apps.
-They are not photographs or evidence of a physical hardware test.
+Info and Downloads are genuine qFlipper 1.3.3 Save Screenshot exports from a
+Flipper Zero on official firmware 1.5.1, captured on 2026-11-03. They are copied
+byte-for-byte without resizing, recoloring, cropping or annotations. Both are
+512x256 with exactly the qFlipper orange (254,138,44) and black (0,0,0) palette.
 
-The host-only adapter compiles the actual clipboard_screen.c with the official
-firmware 1.5.1 u8g2 renderer, haxrcorp4089 font and button icons. It renders the
-same Info and Downloads states at 128x64, then uses nearest-neighbor 4x scaling
-and exactly the catalog qFlipper palette: orange (254,138,44) and black (0,0,0).
-No text, border or annotation is added to the resulting 512x256 PNGs.
+Normal BLE Clipboard switches USB to HID, disconnecting qFlipper. To capture
+safely, the app supports a read-only --info launch argument. It opens the same
+Info/QR renderer but returns before Bluetooth, USB HID or saved-library setup.
+OK opens QR; Back returns to Info and then exits. It cannot receive or execute
+jobs. The captured FAP was uploaded to a temporary app-owned SD directory and
+removed after capture. The owner's installed app, saved library and pairing
+keys were not replaced or read by the Info-only application.
 
-Reproduce with Python 3, Pillow, a C compiler and the official 1.5.1 firmware
-source checkout:
-
-    python3 scripts/render_catalog_screens.py /path/to/flipperzero-firmware
-
-This tool does not open a device, start the app, access pairing keys or read any
-user library. The adapter is not compiled into the shipped Flipper application.
+The optional host canvas adapter in scripts/catalog_screen produces previews
+under ignored dist/catalog-preview. Those are not these catalog screenshots.
+Physical Info/QR navigation was checked; no keyboard/mouse output or camera
+scan was performed. The exported QR decodes to the exact 0.5.2 release URL.

@@ -1,10 +1,24 @@
 #include "clipboard_screen.h"
 #include "companion_version.h"
 #include "companion_qr.h"
+#include "transfer_protocol.h"
 
 #include <furi.h>
 #include <gui/elements.h>
 #include <string.h>
+
+void clipboard_screen_info(ClipboardScreen* screen, bool qr) {
+    memset(screen, 0, sizeof(*screen));
+    screen->selected = -1;
+    screen->companion_qr = qr;
+    if(qr) return;
+    snprintf(screen->left, sizeof(screen->left), "Back");
+    snprintf(screen->center, sizeof(screen->center), "QR code");
+    snprintf(screen->lines[0], sizeof(screen->lines[0]), "Version " CLIPBOARD_APP_VERSION);
+    snprintf(screen->lines[1], sizeof(screen->lines[1]), "Protocol %u", CLIPBOARD_WIRE_VERSION);
+    snprintf(screen->lines[2], sizeof(screen->lines[2]), "Build API %u.%u", CLIPBOARD_BUILD_API_MAJOR, CLIPBOARD_BUILD_API_MINOR);
+    snprintf(screen->lines[3], sizeof(screen->lines[3]), "GPL-3.0-only");
+}
 
 static void draw_status_line(Canvas* canvas, const char* text, size_t length, int32_t baseline) {
     FuriString* line = furi_string_alloc();

@@ -12,3 +12,5 @@ typedef struct {
 } ClipboardScreen;
 
 void clipboard_screen_draw(Canvas* canvas, const ClipboardScreen* screen);
+void clipboard_screen_info(ClipboardScreen* screen, bool qr);
+int32_t clipboard_info_app(void);

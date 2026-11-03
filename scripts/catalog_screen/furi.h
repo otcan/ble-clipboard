@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 typedef struct { char text[128]; } FuriString;
 static inline FuriString* furi_string_alloc(void) { return calloc(1, sizeof(FuriString)); }
 static inline void furi_string_set_strn(FuriString* s, const char* text, size_t size) {

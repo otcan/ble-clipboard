@@ -10,6 +10,13 @@ yet with both downloads disabled. The macro library is byte-for-byte unchanged.
 The Flipper app was left idle/closed; no live input was generated. This is still
 a local development build, not a published or notarized release.
 
+The publication candidate now has a read-only --info launch path and a compact
+QR code button. After owner approval, a temporary FAP was used for genuine
+qFlipper Info/QR exports without Bluetooth, HID or library setup. It was removed
+after capture; full installed-FAP readback still matched the original 0.5.2.
+See the catalog-capture evidence in HARDWARE-VALIDATION.md. Public artifacts are
+not installed automatically over the owner's running app.
+
 ## Installed 0.5.1 Checkpoint
 
 0.5.1 adds a tested HID adapter that clears inherited mouse buttons before each

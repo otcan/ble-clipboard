@@ -286,15 +286,8 @@ static void update_status(ClipboardApp* app, uint32_t now) {
     default:
         if((int32_t)(app->outcome_until - now) > 0) { status_set(app, app->outcome); return; }
         if(app->selected >= app->library.count) app->selected = app->library.count ? app->library.count - 1 : 0;
-        if(app->page == LibraryAbout) {
-            snprintf(screen.left, sizeof(screen.left), "Back");
-            snprintf(screen.center, sizeof(screen.center), "QR code");
-            snprintf(screen.lines[0], sizeof(screen.lines[0]), "Version " CLIPBOARD_APP_VERSION);
-            snprintf(screen.lines[1], sizeof(screen.lines[1]), "Protocol %u", CLIPBOARD_WIRE_VERSION);
-            snprintf(screen.lines[2], sizeof(screen.lines[2]), "Build API %u.%u", CLIPBOARD_BUILD_API_MAJOR, CLIPBOARD_BUILD_API_MINOR);
-            snprintf(screen.lines[3], sizeof(screen.lines[3]), "GPL-3.0-only");
-        } else if(app->page == LibraryCompanions) {
-            screen.companion_qr = true;
+        if(app->page == LibraryAbout || app->page == LibraryCompanions) {
+            clipboard_screen_info(&screen, app->page == LibraryCompanions);
         } else if(app->page == LibraryList || !app->library.count) {
             snprintf(screen.right, sizeof(screen.right), "Info");
             snprintf(screen.lines[0], sizeof(screen.lines[0]), "Saved %u/%u | %s", (unsigned)app->library.count,
@@ -353,7 +346,8 @@ static void local_run(ClipboardApp* app, uint32_t now) {
 }
 
 int32_t ble_clipboard_app(void* context) {
-    UNUSED(context);
+    // Read-only Info can stay on qFlipper's USB RPC connection without HID/BLE setup.
+    if(context && strcmp(context, "--info") == 0) return clipboard_info_app();
     ClipboardApp* app = malloc(sizeof(*app));
     memset(app, 0, sizeof(*app));
     atomic_init(&app->connected, false); atomic_init(&app->overflow, false);

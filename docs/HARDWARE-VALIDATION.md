@@ -37,7 +37,26 @@ The generated 41x41 QR bitmap has a four-module quiet zone; Core Image decoded i
 to the exact v0.5.2 release URL. This is an offline bitmap check, not a physical
 camera/display scan. On-device Info navigation, physical QR scanning, live version
 reporting and sandboxed network checks remain release gates. No live input was
-generated, no existing snapshots were changed, and no public release was created.
+generated, no existing snapshots were changed, and no public release was created
+at that installation checkpoint.
+
+## 0.5.2 Catalog Capture
+
+With explicit owner approval on 2026-11-03, a temporary FAP was uploaded to an
+app-owned SD subdirectory and fully read back before launch with --info. That
+entry path returns before all Bluetooth, USB HID and saved-library setup. It
+opens the same shared Info/QR renderer as the normal app. Info, OK to QR, Back
+to Info and Back to exit were inspected through qFlipper 1.3.3. Save Screenshot
+exports are committed unchanged at 512x256 with exactly the required orange/black
+palette. Core Image decodes the exported QR to the exact v0.5.2 release URL.
+This is not a camera scan or a normal Bluetooth/HID session.
+
+The temporary FAP/directory was removed afterward. The loader was idle and the
+original installed 0.5.2 FAP still matched the checksum above. Pairing keys, saved
+snapshots and the Mac app/library were not changed. The final release candidate
+adds only the read-only Info path/shared renderer and compact QR button since
+that installed FAP. Its automated GUI-only test links no Bluetooth/HID/storage
+symbols, exercises Info/QR/Back/exit and verifies balanced resource cleanup.
 
 ## Previous 0.5.1 - Mouse Button Fix and Installation
 
