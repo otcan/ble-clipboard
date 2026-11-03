@@ -8,7 +8,7 @@ settings:
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.2.0
+    MARKETING_VERSION: 0.5.2
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
     CLANG_ENABLE_MODULES: YES
@@ -18,11 +18,9 @@ targets:
   BLEClipboardStore:
     type: application
     platform: macOS
-    productName: BLE Clipboard Macros
+    productName: BLE Clipboard
     sources:
       - path: ../BLEClipboardMac/Sources/BLEClipboardMac
-        excludes:
-          - BluetoothManager.swift
       - path: ../BLEClipboardMac/Resources/AppIcon.icns
         buildPhase: resources
       - path: PrivacyInfo.xcprivacy
@@ -34,10 +32,9 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Info.plist
-        PRODUCT_NAME: BLE Clipboard Macros
+        PRODUCT_NAME: BLE Clipboard
         APP_DISPLAY_NAME: BLE Clipboard
         PRODUCT_MODULE_NAME: BLEClipboardMac
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MACROS_STORE"
         PRODUCT_BUNDLE_IDENTIFIER: com.oguzcanunver.BLEClipboardMac
         CODE_SIGN_ENTITLEMENTS: Store.entitlements
         ENABLE_APP_SANDBOX: YES

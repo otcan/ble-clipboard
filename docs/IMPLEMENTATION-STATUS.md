@@ -1,71 +1,90 @@
-# Macros and Mac App Store implementation
+# 0.5.2 Implementation Status
 
-Work is isolated on `feature/macros-store`; the main worktree and connected
-Flipper must not be interrupted by development builds.
+0.5.2 adds Info & Companions, guarded version-pinned downloads, read-only device
+version reporting and an on-device About/release QR screen. It preserves the
+0.5.1 movement guard and macro/snapshot formats. After explicit owner readiness
+on 2026-11-03, both 0.5.2 apps were installed with 0.5.1 backups. Mac signature,
+architectures, version and full Flipper readback/checksum checks passed. The
+installed Mac Info panel shows 0.5.2; its real release check returns Not published
+yet with both downloads disabled. The macro library is byte-for-byte unchanged.
+The Flipper app was left idle/closed; no live input was generated. This is still
+a local development build, not a published or notarized release.
 
-## Milestones
+## Installed 0.5.1 Checkpoint
 
-- [x] Preserve the working baseline in a separate Git worktree.
-- [x] Pin and host-test Ducker; build for firmware 1.5.1 / API 88.2 (not hardware validation).
-- [x] Implement a native, tested TTF1 adapter and safe literal serialization.
-- [x] Implement local macro persistence, parameters, previews, and starter macros.
-- [x] Integrate the library into the native Mac interface.
-- [x] Add the sandboxed Xcode Store target and validate an unsigned universal archive.
-- [x] Run protocol, engine, persistence, and UI tests.
-- [ ] Perform real-device integration and interruption tests when the device is available.
-- [ ] Resolve Store licensing/rights and distribution metadata.
-- [ ] Upload a signed TestFlight build after distribution signing is configured.
-- [ ] Complete external beta, review demonstration, and owner approval.
-- [ ] Submit for App Review and verify the Store-installed release.
+0.5.1 adds a tested HID adapter that clears inherited mouse buttons before each
+movement and releases keyboard/mouse state at startup, Stop and exit. A failed
+button-up report prevents movement. The protocol and saved jobs are unchanged.
+After explicit owner readiness on 2026-11-03, both 0.5.1 apps were installed with
+0.5.0 backups. Mac version/signature/architectures and full Flipper readback were
+verified; the Mac About panel reports 0.5.1 (1). Macro definitions and saved SD
+jobs are unchanged. No live 0.5.1 input test has been run.
 
-## Non-automatable gates
+Worktree branch: `feature/independent-0.3.0`. The previous 0.2.0 work was preserved
+in an ignored local source archive before replacement. The separate main worktree,
+submitted 0.1.1 artifacts, device firmware and bonds are untouched. After owner
+readiness at the previous checkpoint on 2026-11-03, the pair was updated from 0.4.0 to 0.5.0 with
+backups and file verification, without executing a hardware job. The Mac runs
+from /Applications; its existing Mouse Jiggle preset now uses ranged Move Mouse
+and Repeat, preserving its ID, target, layout and eight-hour duration. Saved
+Flipper snapshots are unchanged until explicitly resent. The 0.3.0 and 0.4.0
+source/artifacts remain archived locally.
 
-No ownership or licensing consent is inferred from a repository's existence.
-The existing GPL notices remain in place pending a rights review; no GPL
-implementation code is copied into the native Mac adapter. Store compatibility
-must be reviewed before submission. The Account Holder must personally accept
-agreements and approve banking/tax details, pricing, and release. Tester feedback,
-physical hardware evidence, and Apple's approval cannot be fabricated.
+## Implemented
 
-## Evidence and remaining boundary
+- One native Mac app: Quick Paste, text-file import, saved macros, parameters,
+  templates, keys, delays, run review, library import/export and recovery.
+- Saved JSON schema/IDs preserved; standard and Store targets share the same UI.
+- Independent authenticated BLE profile and version-4 binary transport.
+- Generic Move Mouse with fixed/ranged offsets and a one-level timed Repeat body;
+  the mouse preset now uses those actions. Range values are sampled on Flipper.
+- Old schema 1/2 and saved binary jobs stay readable; new definitions use schema 3.
+- Native mouse jiggle, up to 24 hours, with explicit standalone continuation,
+  physical Stop and elapsed/remaining timer. Normal jobs still stop on BLE loss.
+- A 20-entry plaintext SD library for compiled macros and clipboard snapshots,
+  explicit save without execution, local browse/Run/Delete confirmations,
+  checksummed metadata/body, atomic replacement and backup recovery.
+- Reconnect attaches remote Stop to an active autonomous job without replay.
+- Acknowledged 512-byte uploads, CRC-32, job IDs and full preflight before Execute.
+- Own typed-program engine, nonblocking delays, progress, cancellation without
+  disconnecting, key release, timeouts and no automatic replay.
+- 4 KiB RAM path plus temporary SD storage for programs up to 65,536 bytes.
+- 28-layout catalog and experimental native Turkish letters; built-in US and
+  macOS Turkish-Q mappings, without script tags or an external backend.
+- Removed the vendor gitlink/submodule configuration, compatibility patches,
+  script transport/interpreter dependency and their build/test scripts.
+- Matching Mac/FAP packaging, corresponding source and source fingerprints.
 
-Local Swift tests: 28 passing, including all 28 layout serialization cases,
-explicit Bluetooth permission-state diagnostics and missing intermediate-status
-handling.
-The earlier Xcode run passed 24 unit plus 2 UI checks
-(create/edit and offline review). Host C tests cover upstream protocol/HID plus
-the Mac serialization contract. Ducker is pinned, unmodified and builds as a FAP
-for API 88.2. The universal archive contains arm64/x86_64, icon, license/privacy
-resources and the required Bluetooth usage description. Debug's separate bundle
-identifier avoids the existing app. UI testing explicitly disables Bluetooth.
-The original SwiftPM/direct-download app keeps its legacy entry point; only
-the distinct `MACROS_STORE` target uses the new UI/backend.
+## Local Evidence
 
-The initial implementation left the parent worktree, installed Mac app and
-connected Flipper unchanged. On the owner's subsequent request, Ducker was
-installed separately on the Flipper and verified by USB read-back checksum.
-The original app and firmware were not overwritten. Live discovery succeeded,
-but no hardware end-to-end typing pass is claimed. After macOS authorization,
-both clients reproduced a missing TTF1 response with the upstream serial profile.
-The separate compatibility FAP was installed and checksum-verified; it fixes the
-observed RPC/profile conflict and both clients now complete TTF1 setup.
-After exclusive control was granted, a controlled 28-byte USB sample matched
-exactly in the dedicated capture app. Completion reporting then timed out;
-a follow-up status-reliability build passes host tests, is installed with a
-matching USB read-back, and now reports native completion without disconnecting.
-Its first repeat target capture was empty, and helper instrumentation showed an
-inactive target window. After the owner focused the capture, exact 28-byte and
-4,160-byte sends passed with completion and a retained connection. Parameterized
-two-field output, cancellation during a 30-second delay and a bonded reconnect
-without replay also passed. The full-ASCII sample exposed a Turkish-Q punctuation
-and dead-key mismatch on this Mac; that and the broader hardware matrix remain
-open. Native JSON fixture import was also exercised successfully.
-See `HARDWARE-VALIDATION.md` for the exact checkpoint. The capture helper is a
-separate, non-shipping development tool, not a Store entitlement change.
-The local keychain has development/Developer ID identities, but no suitable
-Store distribution identity. No signing certificate, profile, App Store record,
-price schedule, TestFlight upload or review submission has been created.
+Swift unit tests cover saved macros and recovery, binary records, invalid input,
+all layout/target IDs, CRC/frame fragmentation, execution gating, stale/duplicate
+responses, cancellation during upload/commit/execution and capacity limits.
 
-Store metadata/privacy/review drafts and a gated archive script are prepared.
-`Store/metadata/RELEASE-CHECKLIST.md` records the still-unverified acceptance
-matrix; do not turn these draft documents into a claim that deployment is done.
+The sanitizer-enabled host tests compile the actual independent C engine/server.
+They exercise complete Mac-generated wire fixtures, maximum-size jobs, literal
+command-looking text, Turkish UTF-8, shortcuts/delays, queue expiry, malformed
+programs, SD/storage/TX/USB/BLE failure paths, immediate cancellation and no replay.
+The C-emitted ASCII/Turkish HID reports match Apple's keyboard translation on
+three keyboard types. These checks do not interact with a USB device.
+
+New checks simulate eight hours and timer rollover, offline physical Stop, USB
+loss and no restart, reconnect/remote Stop, compact mouse records, old/new JSON,
+save-only gating and SD persistence/corruption/interrupted-replacement/slot-limit.
+These are host-clock/filesystem tests, not a physical multi-hour soak.
+
+Both Mac and Flipper source compile locally. Release output is built separately;
+no signing credentials, notarization submission, public tag or release is created
+by implementation or tests. See the final build artifacts/checksums for the exact
+packaged result rather than treating old preview products as current.
+
+## Still Open
+
+Fresh physical BLE/USB/SD verification, target focus and shortcuts, first pairing,
+other layouts/OSes, sleep/power/cable interruptions and install/upgrade behavior.
+Old backend device results are history, not a pass for this replacement.
+
+Store licensing/rights review, owner-confirmed seller/price/identifiers, agreements,
+permanent privacy/support URLs, proper Store signing/profile, beta feedback,
+review demonstration and Apple approval also remain open. Do not claim release
+readiness or reuse an old notarization ticket for this different binary.

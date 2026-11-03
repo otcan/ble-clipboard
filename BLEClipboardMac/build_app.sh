@@ -31,6 +31,7 @@ cp "Resources/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app_dir/Contents/Info.plist"
 cp "Resources/AppIcon.icns" "$app_dir/Contents/Resources/AppIcon.icns"
 cp "$project_dir/../LICENSE" "$app_dir/Contents/Resources/LICENSE"
+cp "$project_dir/../NOTICE" "$app_dir/Contents/Resources/NOTICE"
 identity=${CODE_SIGN_IDENTITY:--}
 signing_options=(--force --options runtime --sign "$identity")
 if [[ "$identity" != - ]]; then

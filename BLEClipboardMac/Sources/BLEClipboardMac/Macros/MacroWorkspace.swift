@@ -10,8 +10,14 @@ struct MacroJSONFile: FileDocument {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { FileWrapper(regularFileWithContents: data) }
 }
 
+private struct MacroReviewRequest: Identifiable {
+    let id = UUID()
+    let macro: SavedMacro
+    let destination: TransferDestination
+}
+
 struct MacroWorkspace: View {
-    @ObservedObject var bluetooth: DuckerBluetooth
+    @ObservedObject var bluetooth: ClipboardBluetooth
     @ObservedObject var library: MacroLibrary
     @State private var selection: UUID?
     @State private var search = ""
@@ -19,12 +25,14 @@ struct MacroWorkspace: View {
     @State private var quickTarget = TargetSystem.macOS
     @State private var quickLayout = MacroLayout.us
     @State private var editing: SavedMacro?
-    @State private var reviewing: SavedMacro?
+    @State private var reviewing: MacroReviewRequest?
     @State private var deleting: SavedMacro?
     @State private var importing = false
+    @State private var importingText = false
     @State private var exporting = false
     @State private var exportFile = MacroJSONFile(data: Data())
     @State private var error: String?
+    @State private var showingInfo = false
 
     private var selected: SavedMacro? { library.macros.first { $0.id == selection } }
     private var visible: [SavedMacro] { library.macros.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) } }
@@ -55,8 +63,10 @@ struct MacroWorkspace: View {
                 HStack {
                     icon("New Macro", "plus") { editing = SavedMacro(name: "New Macro", steps: [.init(.text)]) }
                         .accessibilityIdentifier("new-macro")
+                    icon("New Mouse Jiggle Macro", "computermouse") { editing = SavedMacro.mouseJiggler() }
+                        .accessibilityIdentifier("new-mouse-jiggle")
                     Spacer()
-                    icon("Import Macros", "square.and.arrow.down") { importing = true }
+                    icon("Import Macros", "square.and.arrow.down") { importingText = false; importing = true }
                     icon("Export Library", "square.and.arrow.up") {
                         attempt { exportFile = MacroJSONFile(data: try library.exportData()); exporting = true }
                     }
@@ -84,6 +94,10 @@ struct MacroWorkspace: View {
                     Text(bluetooth.status).lineLimit(3).textSelection(.enabled)
                     Spacer(minLength: 8)
                     if bluetooth.isBusy {
+                        if bluetooth.remainingSeconds > 0 {
+                            Text(Duration.seconds(bluetooth.remainingSeconds).formatted(.time(pattern: .hourMinuteSecond)))
+                                .monospacedDigit().fixedSize()
+                        }
                         ProgressView(value: bluetooth.progress).frame(width: 75)
                         icon("Stop Output", "stop.fill") { bluetooth.cancel() }
                     }
@@ -96,11 +110,18 @@ struct MacroWorkspace: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .tint(.teal)
+        .toolbar {
+            Button { showingInfo = true } label: { Image(systemName: "info.circle") }
+                .help("Info & Companions").accessibilityLabel("Info & Companions")
+                .accessibilityIdentifier("info-companions")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showCompanionInfo)) { _ in showingInfo = true }
+        .sheet(isPresented: $showingInfo) { CompanionInfoView(bluetooth: bluetooth) }
         .sheet(item: $editing) { macro in
             MacroEditor(initial: macro) { changed in try library.save(changed); selection = changed.id }
         }
-        .sheet(item: $reviewing) { macro in
-            MacroRunReview(macro: macro, bluetooth: bluetooth)
+        .sheet(item: $reviewing) { request in
+            MacroRunReview(macro: request.macro, bluetooth: bluetooth, destination: request.destination)
         }
         .alert("Unable to Complete", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") { error = nil }
@@ -111,12 +132,13 @@ struct MacroWorkspace: View {
                 deleting = nil
             }
         }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+        .fileImporter(isPresented: $importing, allowedContentTypes: importingText ? [.plainText] : [.json]) { result in
             attempt {
                 let url = try result.get()
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
-                selection = try library.importData(MacroLibrary.read(url))
+                if importingText { quickText = try ClipboardFile.read(url, layout: quickLayout.wireID) }
+                else { selection = try library.importData(MacroLibrary.read(url)) }
             }
         }
         .fileExporter(isPresented: $exporting, document: exportFile, contentType: .json, defaultFilename: "BLE-Clipboard-Macros") { result in
@@ -131,7 +153,7 @@ struct MacroWorkspace: View {
             Image(systemName: "antenna.radiowaves.left.and.right").foregroundStyle(bluetooth.isReady ? .teal : .secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(bluetooth.deviceName).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                Text(bluetooth.isReady ? "Ducker connected" : "Bluetooth").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(bluetooth.isReady ? "BLE Clipboard connected" : "Bluetooth").font(.system(size: 10)).foregroundStyle(.secondary)
             }
             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
             Label("USB target", systemImage: "cable.connector").font(.system(size: 12))
@@ -150,7 +172,7 @@ struct MacroWorkspace: View {
             }
             .help(bluetooth.isConnected ? "Disconnect" : bluetooth.isConnecting ? "Cancel Connection" : bluetooth.isScanning ? "Stop Searching" : "Connect to Flipper")
             .accessibilityLabel(bluetooth.isConnected ? "Disconnect" : bluetooth.isConnecting ? "Cancel Connection" : "Connect to Flipper")
-            .disabled(bluetooth.isBusy)
+            .disabled(bluetooth.isBusy && !bluetooth.standaloneActive)
         }
         .padding(18)
     }
@@ -162,6 +184,7 @@ struct MacroWorkspace: View {
                 Spacer()
                 icon("Load Clipboard", "doc.on.clipboard") { quickText = NSPasteboard.general.string(forType: .string) ?? "" }
                     .accessibilityIdentifier("load-clipboard")
+                icon("Open Text File", "doc.text") { importingText = true; importing = true }
                 icon("Clear Text", "trash") { quickText = "" }.disabled(quickText.isEmpty)
             }
             TextEditor(text: $quickText)
@@ -176,14 +199,21 @@ struct MacroWorkspace: View {
                 }.frame(maxWidth: 220)
                 Picker("Layout", selection: $quickLayout) {
                     ForEach(MacroLayout.allCases) { Text($0.title).tag($0) }
-                }.frame(maxWidth: 180)
+                }.frame(minWidth: 230, idealWidth: 250, maxWidth: 300)
                 Spacer()
             }
             HStack {
                 Text("\(quickText.utf8.count.formatted()) bytes").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button {
-                    reviewing = SavedMacro(name: "Quick Paste", target: quickTarget, layout: quickLayout, steps: [.init(.text, quickText)])
+                    reviewing = .init(macro: SavedMacro(name: "Clipboard Snapshot", target: quickTarget, layout: quickLayout,
+                                                       steps: [.init(.text, quickText)]), destination: .save)
+                } label: { Label("Send to Flipper", systemImage: "square.and.arrow.up") }
+                    .disabled(quickText.isEmpty || bluetooth.isBusy)
+                    .accessibilityIdentifier("save-quick-paste")
+                Button {
+                    reviewing = .init(macro: SavedMacro(name: "Quick Paste", target: quickTarget, layout: quickLayout,
+                                                       steps: [.init(.text, quickText)]), destination: .run)
                 } label: { Label("Review & Run", systemImage: "play.fill") }
                     .buttonStyle(.borderedProminent)
                     .disabled(quickText.isEmpty || bluetooth.isBusy)
@@ -217,9 +247,16 @@ struct MacroWorkspace: View {
                             Text(String(format: "%02d", index + 1)).foregroundStyle(.tertiary).frame(width: 24)
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(step.kind.title).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-                                Text(step.kind == .delay ? "\(step.milliseconds) ms" : step.value)
+                                Text(step.summary)
                                     .font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
+                                if step.kind == .repeatFor {
+                                    ForEach(step.children ?? []) { child in
+                                        Text("\(child.kind.title): \(child.summary)")
+                                            .font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
+                                            .padding(.leading, 12)
+                                    }
+                                }
                             }
                         }.padding(.vertical, 15)
                         Divider()
@@ -229,7 +266,9 @@ struct MacroWorkspace: View {
             HStack {
                 Text(macro.updatedAt, style: .date).font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button { reviewing = macro } label: { Label("Review & Run", systemImage: "play.fill") }
+                Button { reviewing = .init(macro: macro, destination: .save) } label: { Label("Send to Flipper", systemImage: "square.and.arrow.up") }
+                    .disabled(bluetooth.isBusy).accessibilityIdentifier("save-macro-flipper")
+                Button { reviewing = .init(macro: macro, destination: .run) } label: { Label("Review & Run", systemImage: "play.fill") }
                     .buttonStyle(.borderedProminent).disabled(bluetooth.isBusy)
                     .accessibilityIdentifier("review-macro")
             }
@@ -245,13 +284,109 @@ struct MacroWorkspace: View {
     }
 }
 
+private struct MacroNumberField: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField(title, value: $value, format: .number)
+                .labelsHidden().multilineTextAlignment(.trailing).frame(width: 84).accessibilityLabel(title)
+            Stepper(title, value: $value, in: range).labelsHidden().fixedSize()
+        }
+    }
+}
+
+private struct PrimitiveStepFields: View {
+    @Binding var step: MacroStep
+    let parameters: [MacroParameter]
+    private func coordinate(_ title: String, get: @escaping () -> Int, set: @escaping (Int) -> Void) -> some View {
+        MacroNumberField(title: title, value: Binding(get: get, set: { set(min(127, max(-127, $0))) }), range: -127...127)
+    }
+    var body: some View {
+        if step.kind == .delay {
+            MacroNumberField(title: "Delay (milliseconds)", value: Binding(get: { step.milliseconds },
+                set: { step.milliseconds = min(30_000, max(1, $0)) }), range: 1...30_000)
+        } else if step.kind == .moveMouse {
+            Picker("Offsets", selection: Binding(get: { step.varyingMouse == true }, set: { step.varyingMouse = $0 })) {
+                Text("Fixed").tag(false); Text("Range").tag(true)
+            }.pickerStyle(.segmented)
+            coordinate(step.varyingMouse == true ? "X minimum (HID units)" : "X (HID units)", get: { step.xMinimum }, set: { step.mouseXMinimum = $0 })
+            if step.varyingMouse == true {
+                coordinate("X maximum (HID units)", get: { step.xMaximum }, set: { step.mouseXMaximum = $0 })
+            }
+            coordinate(step.varyingMouse == true ? "Y minimum (HID units)" : "Y (HID units)", get: { step.yMinimum }, set: { step.mouseYMinimum = $0 })
+            if step.varyingMouse == true {
+                coordinate("Y maximum (HID units)", get: { step.yMaximum }, set: { step.mouseYMaximum = $0 })
+            }
+        } else if step.kind == .chord {
+            TextField("Key combination", text: $step.value).font(.system(.body, design: .monospaced))
+        } else if step.kind == .text || step.kind == .template {
+            TextEditor(text: $step.value).font(.system(.body, design: .monospaced)).frame(minHeight: 66)
+            if step.kind == .template {
+                Menu {
+                    Button("Clipboard") { step.value += "{{clipboard}}" }
+                    Button("Timestamp") { step.value += "{{timestamp}}" }
+                    ForEach(parameters) { item in Button(item.label) { step.value += "{{\(item.id)}}" } }
+                } label: { Label("Insert Parameter", systemImage: "curlybraces") }.fixedSize()
+            }
+        }
+    }
+}
+
+private struct MacroStepRow: View {
+    @Binding var step: MacroStep
+    let parameters: [MacroParameter]
+    let allowRepeat: Bool
+    let up: () -> Void
+    let down: () -> Void
+    let remove: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Picker("Step", selection: $step.kind) {
+                    ForEach(MacroStep.Kind.allCases.filter { allowRepeat || $0 != .repeatFor }) { Text($0.title).tag($0) }
+                }
+                Spacer()
+                Button(action: up) { Image(systemName: "arrow.up") }.help("Move Up")
+                Button(action: down) { Image(systemName: "arrow.down") }.help("Move Down")
+                Button(role: .destructive, action: remove) { Image(systemName: "trash") }.help("Delete Step")
+            }
+            PrimitiveStepFields(step: $step, parameters: parameters)
+        }
+        .onChange(of: step.kind) { _, kind in
+            if kind == .repeatFor && step.children?.isEmpty != false { step.children = [.init(.moveMouse)] }
+            if kind != .repeatFor { step.children = nil }
+        }
+    }
+}
+
+private struct RepeatStepFields: View {
+    @Binding var step: MacroStep
+    var body: some View {
+        MacroNumberField(title: "Duration (minutes)", value: Binding(get: { step.jiggleDuration / 60 },
+            set: { step.mouseDurationSeconds = min(1_440, max(1, $0)) * 60 }), range: 1...1_440)
+        Picker("Interval", selection: Binding(get: { step.varyingInterval == true }, set: { step.varyingInterval = $0 })) {
+            Text("Fixed").tag(false); Text("Range").tag(true)
+        }.pickerStyle(.segmented)
+        MacroNumberField(title: step.varyingInterval == true ? "Minimum interval (seconds)" : "Interval (seconds)",
+            value: Binding(get: { step.jiggleInterval }, set: { step.mouseIntervalSeconds = min(3_600, max(1, $0)) }), range: 1...3_600)
+        if step.varyingInterval == true {
+            MacroNumberField(title: "Maximum interval (seconds)", value: Binding(get: { step.intervalMaximum },
+                set: { step.mouseIntervalMaximumSeconds = min(3_600, max(1, $0)) }), range: 1...3_600)
+        }
+    }
+}
+
 private struct MacroEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft: SavedMacro
     @State private var error: String?
     let save: (SavedMacro) throws -> Void
     init(initial: SavedMacro, save: @escaping (SavedMacro) throws -> Void) {
-        _draft = State(initialValue: initial)
+        _draft = State(initialValue: initial.migratingLegacyMouse)
         self.save = save
     }
 
@@ -266,6 +401,11 @@ private struct MacroEditor: View {
                 }.keyboardShortcut(.defaultAction).accessibilityIdentifier("save-macro")
             }.padding(18)
             Divider()
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.callout).foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+            }
             Form {
                 Section {
                     TextField("Name", text: $draft.name).accessibilityIdentifier("macro-name")
@@ -279,26 +419,23 @@ private struct MacroEditor: View {
                 Section("Steps") {
                     ForEach($draft.steps) { $step in
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Picker("Step", selection: $step.kind) { ForEach(MacroStep.Kind.allCases) { Text($0.title).tag($0) } }
-                                Spacer()
-                                Button { move(step.id, -1) } label: { Image(systemName: "arrow.up") }.help("Move Up")
-                                Button { move(step.id, 1) } label: { Image(systemName: "arrow.down") }.help("Move Down")
-                                Button(role: .destructive) { draft.steps.removeAll { $0.id == step.id } } label: { Image(systemName: "trash") }.help("Delete Step")
-                            }
-                            if step.kind == .delay {
-                                Stepper("\(step.milliseconds) ms", value: $step.milliseconds, in: 1...30_000, step: 50)
-                            } else if step.kind == .chord {
-                                TextField("Key combination", text: $step.value).font(.system(.body, design: .monospaced))
-                            } else {
-                                TextEditor(text: $step.value).font(.system(.body, design: .monospaced)).frame(minHeight: 66)
-                                if step.kind == .template {
-                                    Menu {
-                                        Button("Clipboard") { step.value += "{{clipboard}}" }
-                                        Button("Timestamp") { step.value += "{{timestamp}}" }
-                                        ForEach(draft.parameters) { item in Button(item.label) { step.value += "{{\(item.id)}}" } }
-                                    } label: { Label("Insert Parameter", systemImage: "curlybraces") }.fixedSize()
+                            MacroStepRow(step: $step, parameters: draft.parameters, allowRepeat: true,
+                                up: { move(step.id, -1) }, down: { move(step.id, 1) },
+                                remove: { draft.steps.removeAll { $0.id == step.id } })
+                            if step.kind == .repeatFor {
+                                RepeatStepFields(step: $step)
+                                Text("Repeated Steps").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                ForEach(childSteps($step)) { $child in
+                                    MacroStepRow(step: $child, parameters: draft.parameters, allowRepeat: false,
+                                        up: { moveChild(child.id, -1, parent: $step) },
+                                        down: { moveChild(child.id, 1, parent: $step) },
+                                        remove: { step.children?.removeAll { $0.id == child.id } })
+                                        .padding(.leading, 12)
+                                    Divider()
                                 }
+                                Button { step.children = (step.children ?? []) + [.init(.moveMouse)] }
+                                    label: { Label("Add Repeated Step", systemImage: "plus") }
+                                    .disabled((step.children?.count ?? 0) >= 128)
                             }
                         }.padding(.vertical, 6)
                     }
@@ -318,7 +455,6 @@ private struct MacroEditor: View {
                         draft.parameters.append(.init(id: "field\(number)", label: "Field \(number)"))
                     } label: { Label("Add Parameter", systemImage: "plus") }.disabled(draft.parameters.count >= 32)
                 }
-                if let error { Text(error).foregroundStyle(.red) }
             }.formStyle(.grouped)
         }
         .frame(width: 650, height: 680)
@@ -327,22 +463,38 @@ private struct MacroEditor: View {
         guard let index = draft.steps.firstIndex(where: { $0.id == id }), draft.steps.indices.contains(index + direction) else { return }
         draft.steps.swapAt(index, index + direction)
     }
+    private func childSteps(_ step: Binding<MacroStep>) -> Binding<[MacroStep]> {
+        Binding(get: { step.wrappedValue.children ?? [] }, set: { step.wrappedValue.children = $0 })
+    }
+    private func moveChild(_ id: UUID, _ direction: Int, parent: Binding<MacroStep>) {
+        var children = parent.wrappedValue.children ?? []
+        guard let index = children.firstIndex(where: { $0.id == id }), children.indices.contains(index + direction) else { return }
+        children.swapAt(index, index + direction); parent.wrappedValue.children = children
+    }
 }
 
 private struct MacroRunReview: View {
     @Environment(\.dismiss) private var dismiss
     let macro: SavedMacro
-    @ObservedObject var bluetooth: DuckerBluetooth
+    @ObservedObject var bluetooth: ClipboardBluetooth
     @State private var clipboard: String
     @State private var date = Date()
     @State private var values: [String: String] = [:]
     @State private var confirmed = false
     @State private var hideBeforeOutput = false
+    @State private var destination: TransferDestination
+    @State private var standalone: Bool
+    @State private var storedName: String
 
-    init(macro: SavedMacro, bluetooth: DuckerBluetooth) {
+    init(macro: SavedMacro, bluetooth: ClipboardBluetooth, destination: TransferDestination = .run) {
         self.macro = macro
         self.bluetooth = bluetooth
-        let needsClipboard = macro.steps.contains { $0.kind == .template && $0.value.contains("{{clipboard}}") }
+        _destination = State(initialValue: destination)
+        _standalone = State(initialValue: macro.prefersStandalone)
+        var name = macro.name
+        while name.utf8.count > 79 { name.removeLast() }
+        _storedName = State(initialValue: name)
+        let needsClipboard = macro.flattenedSteps.contains { $0.kind == .template && $0.value.contains("{{clipboard}}") }
         _clipboard = State(initialValue: needsClipboard ? (NSPasteboard.general.string(forType: .string) ?? "") : "")
     }
 
@@ -359,6 +511,11 @@ private struct MacroRunReview: View {
             }
             LabeledContent("USB Target", value: "\(macro.target.rawValue) / \(macro.layout.title)")
             LabeledContent("Flipper", value: bluetooth.isReady ? bluetooth.deviceName : "Not connected")
+            Picker("Destination", selection: $destination) {
+                ForEach(TransferDestination.allCases) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented)
+                .onChange(of: destination) { _, _ in confirmed = false }
+            if destination == .save { TextField("Name on Flipper", text: $storedName) }
             if !macro.parameters.isEmpty {
                 ScrollView {
                     VStack(spacing: 10) {
@@ -381,23 +538,34 @@ private struct MacroRunReview: View {
                 Text(error.localizedDescription).foregroundStyle(.red)
                 Spacer()
             }
-            Toggle("The intended USB target and input field are focused", isOn: $confirmed)
-            Toggle("Hide this app before output", isOn: $hideBeforeOutput)
+            if destination == .save {
+                Toggle("Store this plaintext snapshot on the Flipper SD card", isOn: $confirmed)
+            } else {
+                Toggle("The intended USB target and input field are focused", isOn: $confirmed)
+                Toggle("Continue on Flipper if this Mac disconnects", isOn: $standalone)
+                Toggle("Hide this app before output", isOn: $hideBeforeOutput)
+            }
             HStack {
-                Label("Line breaks send Enter; output cannot be undone", systemImage: "exclamationmark.triangle")
+                Label(destination == .save ? "Clipboard, time and parameters are fixed at send time; no USB output now" :
+                      standalone ? "Continues after Mac closes; physical Stop remains available" : "Line breaks send Enter; output cannot be undone", systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button {
-                    if case .success(let output) = compiled { bluetooth.run(output, hideApp: hideBeforeOutput); dismiss() }
-                } label: { Label("Run on USB", systemImage: "play.fill") }
+                    if case .success(let output) = compiled {
+                        if destination == .save { bluetooth.saveToFlipper(output, id: macro.id, name: storedName) }
+                        else { bluetooth.run(output, hideApp: hideBeforeOutput, standalone: standalone) }
+                        dismiss()
+                    }
+                } label: { Label(destination.rawValue, systemImage: destination == .save ? "square.and.arrow.up" : "play.fill") }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canRun)
                     .accessibilityIdentifier("run-confirmed")
             }
-        }.padding(24).frame(width: 650, height: 570)
+        }.padding(24).frame(width: 650, height: 650)
     }
     private var canRun: Bool {
         guard confirmed, bluetooth.isReady, !bluetooth.isBusy, case .success = compiled else { return false }
+        if destination == .save { return (try? SavedProgramRequest(id: macro.id, name: storedName).payload(jobID: 1)) != nil }
         return true
     }
 }

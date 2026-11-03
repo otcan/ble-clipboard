@@ -2,31 +2,25 @@ BLE Clipboard is an independent, unofficial project for Flipper Zero.
 It is not affiliated with Flipper Devices, Apple, or Homebrew.
 
 The Flipper application uses the public Flipper Zero firmware SDK and its
-Bluetooth, GUI, storage, and USB HID APIs. The SDK and firmware are maintained by
-Flipper Devices Inc. and contributors:
-https://github.com/flipperdevices/flipperzero-firmware
+Bluetooth, GUI, storage, and USB HID APIs, maintained by Flipper Devices Inc.
+and contributors: https://github.com/flipperdevices/flipperzero-firmware
 
 Source code in this repository is licensed under GPL-3.0-only; see LICENSE.
 The SDK, firmware, Apple frameworks, and Homebrew retain their own licenses.
 
-The macOS application icon was generated using OpenAI image generation and
-adapted into Apple's ICNS sizes using sips and iconutil. The checked-in source
-PNG is the master asset. See docs/ARTWORK.md for its generation prompt.
+Version 0.3.0 and later use this project's own BLE transport, typed binary macro format,
+program validator and USB execution state machine. It does not bundle another
+project's typing engine or a third-party script interpreter.
 
-Vendor/Ducker is an unmodified, separately licensed Git submodule:
-DuckerTheFlipper (TransTheFlip), Copyright (C) 2026 Romain Champliau.
-https://github.com/xunalopak/ducker-the-flipper
-Pinned revision: 9d706967f7006702c9db3368235e6b6495176a46
-Its source headers allow GPL version 3 or later; see its LICENSE and source
-headers. That license is not overridden by the repository's GPL-3.0-only notice.
-The new Mac adapter implements its public TTF1 wire protocol independently;
-the GPL firmware implementation is not linked into the macOS executable.
-scripts/tests/ducker_contract.c compiles upstream's test harness by inclusion
-for testing only, with the upstream copyright and licensing retained.
+The built-in macOS Turkish-Q mapping uses standard USB HID usages and was
+checked against Apple's installed keyboard translation through UCKeyTranslate.
+No Apple keyboard layout binary or private framework is redistributed.
 
-DuckerCompatibility is an optional BT Paste overlay for the pinned Ducker
-source. It isolates the SDK serial profile from the firmware's automatic RPC
-registration without changing its GAP security configuration. The build script
-retains the original Bluetooth implementation as upstream_bt.inc and packages
-the complete modified source alongside the resulting FAP. This is a development
-variant, not an upstream release. See DuckerCompatibility/BUILD.md.
+The macOS icon was generated using OpenAI image generation and adapted into
+Apple's ICNS sizes using sips and iconutil. See docs/ARTWORK.md.
+
+Catalog screenshots use the actual screen renderer with official firmware 1.5.1
+u8g2/font/button resources through a host-only adapter. Firmware GUI behavior is
+GPL-3.0 licensed; u8g2 retains its upstream BSD license and font notices. No
+firmware library or font source is vendored by the adapter. See the provenance
+under BluetoothClipboard/screenshots and the official firmware source above.

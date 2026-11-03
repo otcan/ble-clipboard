@@ -1,4 +1,6 @@
 #include "clipboard_screen.h"
+#include "companion_version.h"
+#include "companion_qr.h"
 
 #include <furi.h>
 #include <gui/elements.h>
@@ -13,23 +15,32 @@ static void draw_status_line(Canvas* canvas, const char* text, size_t length, in
     furi_string_free(line);
 }
 
-void clipboard_screen_draw(Canvas* canvas, const char* status) {
-    const char* detail = strchr(status, '\n');
-    size_t title_length = detail ? (size_t)(detail - status) : strlen(status);
-
+void clipboard_screen_draw(Canvas* canvas, const ClipboardScreen* screen) {
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 10, "BLE Clipboard");
+    if(screen->companion_qr) {
+        canvas_draw_str(canvas, 4, 10, "Companions");
+        canvas_draw_str(canvas, 4, 23, "v" CLIPBOARD_APP_VERSION);
+        canvas_draw_str(canvas, 4, 35, "Mac + Flipper");
+        canvas_draw_str(canvas, 4, 47, "GitHub release");
+        canvas_draw_xbm(canvas, 127 - CLIPBOARD_QR_SIZE, 2,
+                        CLIPBOARD_QR_SIZE, CLIPBOARD_QR_SIZE, clipboard_companion_qr);
+        elements_button_left(canvas, "Back");
+        return;
+    }
+    canvas_draw_str(canvas, 4, 10, "BLE Clipboard " CLIPBOARD_APP_VERSION);
     canvas_draw_line(canvas, 0, 14, 127, 14);
 
-    // Reserve separate bands for the title, detail, and native exit control.
-    canvas_set_font(canvas, FontPrimary);
-    draw_status_line(canvas, status, title_length, 32);
-    canvas_set_font(canvas, FontSecondary);
-    if(detail) {
-        detail++;
-        draw_status_line(canvas, detail, strcspn(detail, "\n"), 45);
+    for(unsigned i = 0; i < 4; i++) {
+        if(screen->selected == (int8_t)i) {
+            canvas_draw_box(canvas, 0, 15 + i * 9, 128, 9);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        draw_status_line(canvas, screen->lines[i], strlen(screen->lines[i]), 23 + i * 9);
+        canvas_set_color(canvas, ColorBlack);
     }
-    elements_button_left(canvas, "Exit");
+    if(screen->left[0]) elements_button_left(canvas, screen->left);
+    if(screen->center[0]) elements_button_center(canvas, screen->center);
+    if(screen->right[0]) elements_button_right(canvas, screen->right);
 }

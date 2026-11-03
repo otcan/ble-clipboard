@@ -1,41 +1,36 @@
-# App Review instructions draft
+# App Review Instructions Draft - 0.5.2
 
-This app requires a physical Flipper Zero and a USB target. No developer account
-or login is required. A reviewer cannot validate USB output on a simulator alone.
+This requires a physical Flipper Zero running the independent BLE Clipboard
+0.5.2 FAP, official firmware 1.5.1/API 88.2, and an authorized USB target.
+The device is not included with the Mac download. No cloud login is required.
 
-Before submission, attach a real video showing the shipping Mac app/build,
-Flipper firmware/app version, pairing prompts, USB cable to the target, typed
-output, and cancellation. Publish permanent, accessible source/build instructions
-for the required Flipper application. Offer reviewer hardware/access arrangements
-as required by Apple; do not claim the accessory is included with the purchase.
+Do not submit yet. First attach a fresh physical demonstration of this exact
+Mac/FAP pair, its pairing prompts, target output, cancellation and release build
+identifiers. Older prototype captures do not certify this replacement engine.
 
-Review path:
+1. Open Apps > Bluetooth > BLE Clipboard 0.5.2 on the Flipper.
+2. Open the matching Mac app, Connect, choose the Flipper and approve matching
+   Bluetooth pairing codes on both devices.
+3. Connect USB to a second computer with a disposable plain text document and
+   matching US layout initially. No target-side software is required.
+4. Select Timestamp, Review & Run, inspect the expanded output, confirm target
+   focus and explicitly Run on USB.
+5. A literal snippet containing `[ENTER]` must type those characters; only a
+   typed key step or an actual newline can emit Enter.
+6. Fill Two Fields should use prompted values and one Tab, without submitting.
+7. Stop during a long delay or typing. The independent backend cancels the
+   job and releases keys while retaining Bluetooth; it never replays on reconnect.
 
-1. Open the matching **BT Paste Ducker** compatibility app on the Flipper, with
-   its Bluetooth enabled. Do not substitute the unmodified upstream FAP for the
-   official 1.5.1 test configuration; see the compatibility build instructions.
-2. Launch the Mac app; press Connect, choose the correct Flipper under Devices,
-   and approve any pairing prompts on both devices.
-3. Connect Flipper USB to a second computer with a plain text editor focused.
-   Use matching US layout initially. No target-side software is required.
-4. Select Timestamp, Review & Run, inspect output and confirm focus. Run on USB.
-5. Test a saved snippet containing literal `[ENTER]`; it must type those
-   characters, not an Enter command. Newlines themselves do send Enter.
-6. Use Fill Two Fields with two harmless values; it tabs once without submitting.
-7. Test Stop during output. This backend disconnects BLE to cancel; input already
-   sent cannot be undone. It does not automatically reconnect or replay.
+The standard and sandboxed builds share the same macro UI, compiler and v3
+client. The companion uses the project's custom BLE service, validator and USB
+state machine. No external script engine or vendor submodule is required.
+Corresponding source, build instructions, Flipper FAP and checksums must be
+available at permanent URLs matching the actual submitted version.
 
-Current development pin: Ducker commit
-`9d706967f7006702c9db3368235e6b6495176a46`, official firmware 1.5.1/API 88.2 build.
-Replace with exact hardware-verified release identifiers at submission time.
-The compatibility source overlay is in `DuckerCompatibility/`; its complete
-generated source archive accompanies the FAP. Only BLE setup is verified at the
-current checkpoint, not the complete physical demonstration.
+Only public SwiftUI/AppKit/CoreBluetooth APIs are used. No Accessibility grant,
+screen capture, root/shell helper, built-in updater or target clipboard API is
+used. The app emits keyboard events only on an explicitly authorized USB target.
 
-No accessibility permission, screen capture, root helper, downloaded executable,
-Mac shell execution, built-in updater or target OS clipboard access is used by
-this app. Macro commands represent USB keyboard input on an authorized target.
-The app uses only Apple's public CoreBluetooth/SwiftUI/AppKit APIs.
-
-Video URL, tested hardware, signed build number and reviewer contact:
-**not yet available; do not submit until completed**.
+Local unit/host tests and unsigned archives are not physical evidence or Store
+approval. Video URL, tested hardware, signed build, reviewer access/contact and
+owner approval remain required before submission.

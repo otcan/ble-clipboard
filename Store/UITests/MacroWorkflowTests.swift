@@ -23,6 +23,16 @@ final class MacroWorkflowTests: XCTestCase {
         app.buttons["Cancel"].firstMatch.click()
     }
 
+    func testCompanionInfoKeepsUnpublishedDownloadsDisabled() {
+        app.buttons["info-companions"].click()
+        XCTAssertTrue(app.staticTexts["Info & Companions"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Not published yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["download-mac"].isEnabled)
+        XCTAssertFalse(app.buttons["download-flipper"].isEnabled)
+        app.buttons["Close Info & Companions"].click()
+        XCTAssertTrue(app.staticTexts["Quick Paste"].firstMatch.exists)
+    }
+
     func testCreateAndEditMacroWithoutConnecting() {
         app.buttons["new-macro"].click()
         let name = app.textFields["macro-name"]
@@ -43,5 +53,32 @@ final class MacroWorkflowTests: XCTestCase {
         capture.name = "Saved macro workspace"
         capture.lifetime = .keepAlways
         add(capture)
+    }
+
+    func testSendStartsInSaveModeWithoutUSBExecution() {
+        app.staticTexts["Timestamp"].firstMatch.click()
+        app.buttons["save-macro-flipper"].click()
+        XCTAssertTrue(app.textFields["Name on Flipper"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.checkBoxes["Store this plaintext snapshot on the Flipper SD card"].exists)
+        XCTAssertFalse(app.checkBoxes["The intended USB target and input field are focused"].exists)
+        XCTAssertFalse(app.buttons["run-confirmed"].isEnabled)
+        app.buttons["Cancel"].firstMatch.click()
+        app.buttons["review-macro"].click()
+        XCTAssertTrue(app.checkBoxes["The intended USB target and input field are focused"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["run-confirmed"].isEnabled)
+    }
+
+    func testMousePresetHasHoursControlsAndOfflineStopSafety() {
+        app.buttons["new-mouse-jiggle"].click()
+        XCTAssertTrue(app.textFields["macro-name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["Duration (minutes)"].exists)
+        XCTAssertTrue(app.textFields["Minimum interval (seconds)"].exists)
+        XCTAssertTrue(app.textFields["Maximum interval (seconds)"].exists)
+        app.buttons["save-macro"].click()
+        app.buttons["review-macro"].click()
+        let standalone = app.checkBoxes["Continue on Flipper if this Mac disconnects"]
+        XCTAssertTrue(standalone.waitForExistence(timeout: 5))
+        XCTAssertEqual(standalone.value as? Int, 1)
+        XCTAssertFalse(app.buttons["run-confirmed"].isEnabled)
     }
 }

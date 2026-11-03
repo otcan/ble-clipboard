@@ -4,7 +4,7 @@ cask "ble-clipboard" do
 
   url "https://github.com/otcan/ble-clipboard/releases/download/v#{version}/BLE-Clipboard-#{version}-universal.zip"
   name "BLE Clipboard"
-  desc "Send text over Bluetooth to a Flipper Zero USB keyboard"
+  desc "Clipboard and macros over Bluetooth to a Flipper Zero USB keyboard"
   homepage "https://github.com/otcan/ble-clipboard"
 
   depends_on macos: :sonoma
@@ -12,8 +12,9 @@ cask "ble-clipboard" do
   app "BLE Clipboard.app"
 
   caveats <<~EOS
-    Install ble_clipboard.fap on your Flipper Zero separately:
+    Install the matching ble_clipboard.fap on your Flipper Zero separately:
       https://github.com/otcan/ble-clipboard/releases/tag/v#{version}
+    Open Apps > Bluetooth > BLE Clipboard. Update both apps to this version.
 
     This early release is ad-hoc signed, not Apple-notarized.
     macOS may require explicit approval in Privacy & Security.

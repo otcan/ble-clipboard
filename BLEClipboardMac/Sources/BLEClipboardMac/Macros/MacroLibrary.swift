@@ -28,12 +28,14 @@ final class MacroLibrary: ObservableObject {
     static func decode(_ data: Data) throws -> [SavedMacro] {
         guard data.count <= 2_000_000 else { throw MacroError.invalid("Library file is too large.") }
         let document = try JSONDecoder().decode(MacroDocument.self, from: data)
-        guard document.schemaVersion == 1, document.macros.count <= 1000,
+        guard (1...3).contains(document.schemaVersion), document.macros.count <= 1000,
               Set(document.macros.map(\.id)).count == document.macros.count else {
             throw MacroError.invalid("Unsupported library version or duplicate macro identifiers.")
         }
         try document.macros.forEach(MacroCompiler.validate)
-        return document.macros
+        let migrated = document.macros.map(\.migratingLegacyMouse)
+        try migrated.forEach(MacroCompiler.validate)
+        return migrated
     }
 
     static func read(_ url: URL) throws -> Data {

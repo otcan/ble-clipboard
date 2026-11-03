@@ -1,75 +1,39 @@
-# BLE Clipboard for macOS
+# BLE Clipboard 0.5.2 for macOS
 
-Native macOS companion for the Flipper Zero **BLE Clipboard** application.
-See the [project README](../README.md) for downloads, Homebrew installation,
-screenshots, and the complete setup guide.
+One native Mac app contains Quick Paste and the existing macro library. Its
+companion is the independent **BLE Clipboard 0.5.2** Flipper app under
+**Apps > Bluetooth**. Both apps must match; no third-party typing engine is used.
 
-## Flow
+Build with `./build_app.sh --universal`; output is `dist/BLE Clipboard.app`.
+Run `swift test` and `sh ../scripts/check_clipboard.sh` for unit, sanitizer and
+cross-language wire/engine checks. The latter uses only fake USB, never hardware.
 
-Mac app -> authenticated Bluetooth LE -> Flipper -> USB keyboard -> target.
+Create/edit/reorder macros, enter parameters, review expanded output, confirm
+the intended target and explicitly Run. Quick Paste additionally loads the
+clipboard or a UTF-8 text file. There are 28 layout choices; native Turkish
+letters remain experimental. Unsupported Unicode is rejected.
 
-1. Open **Apps > Bluetooth > BLE Clipboard** on the Flipper.
-2. Open `dist/BLE Clipboard.app` on the Mac. Allow Bluetooth access if requested.
-3. Compare and approve the pairing code on the Mac and Flipper. The BLE name is
-   **Paste**. The app only enables sending after the secure protocol handshake.
-4. Connect the Flipper's USB cable to the target device and focus its text field.
-5. Enter text in the Mac app, or click **Load Clipboard**. Select the target's
-   active keyboard layout, then **Send to USB**.
+Prior JSON schema 1 and existing IDs stay readable; mouse-containing documents
+use schema 3; schema 2 mouse actions migrate to generic steps. Store-preview containers
+and the direct build have separate library locations; use export/import to move
+definitions deliberately. Neither library is silently overwritten.
 
-The Bluetooth connection stays open. There are no script files, profile switching
-between commands, or target-side software requirements. The Mac app hides after
-acceptance to restore focus when the USB target happens to be this same Mac.
-Text is only sent on an explicit click; the clipboard is not watched automatically.
+The Mac compiles typed text, key, delay, Move Mouse and Repeat records and transfers a bounded,
+CRC-verified program. It does not interpret bracket text as script commands.
+The Flipper validates the entire program before a separate execution command.
+Stop keeps Bluetooth connected. Normal jobs stop on BLE loss/Mac sleep/quit;
+explicit standalone runs continue until complete, physical Stop or USB loss.
+No request is automatically replayed. The mouse icon creates an eight-hour
+Mouse Jiggle preset built from Repeat and Move Mouse, with editable duration,
+interval and X/Y ranges, sampled on the Flipper. No undetectability guarantee.
 
-## Limits and Safety
+Send to Flipper saves a reviewed, plaintext compiled snapshot without executing.
+Clipboard/time/parameters are fixed when sent. Up to 20 snapshots persist on SD;
+the device has browse, confirmed Run and confirmed Delete controls. Physical
+runs are standalone and require USB already connected. Left/Back stops a busy
+job; Back from the idle library exits. No firmware update or external engine.
 
-- Currently supports 1-3071 ASCII characters, plus tabs and line breaks. Unsupported
-  characters are rejected before sending, not silently transliterated.
-- US and Turkish Q target layouts are available. Turkish Q requires the firmware
-  asset `/ext/badusb/assets/layouts/tr-TR.kl`.
-- This types text; it does not transfer the target's OS clipboard or emit Command-V.
-- Tabs and newlines are real Tab and Enter keystrokes. Start with a plain text
-  editor, not a terminal or a form that submits on Enter.
-- Cancel stops typing; Back on the Flipper exits and restores normal USB/Bluetooth.
-  Disconnection stops pending typing. Requests are never automatically replayed.
-- Bluetooth's authenticated numeric-comparison pairing protects the transport.
-  The HELLO exchange checks protocol compatibility; it is not an independent
-  app-level credential. Pair only with a computer you trust.
-- Text is not written to disk by these apps. Saved settings contain only the target
-  layout and the paired CoreBluetooth identifier. Diagnostic logs omit clipboard data.
-
-## Troubleshooting
-
-- The USB serial port disappears while this app runs because USB is a keyboard.
-  Exit with Back before using qFlipper or uploading another build over USB.
-- For **Pairing incomplete**, click Connect and approve the matching code on both
-  devices. Do not disable encryption to work around a pairing failure.
-- For **USB target not connected**, check the data-capable USB cable and target.
-- A successful send means HID reports were sent, not that a specific target app
-  received the intended text. Check the target before retrying a partial send.
-
-## Development
-
-Build with `./build_app.sh`. The resulting application is written to
-`dist/BLE Clipboard.app`.
-
-Run `swift test` for protocol framing and text-validation tests. Build the Flipper
-app from `../BluetoothClipboard` using the workspace `.venv/bin/ufbt` (API 88.2).
-
-Protocol v2: `[version=2, command, uint16LE payload length, payload]`.
-HELLO `0x01` carries `BTPASTE-MAC/2`; TYPE `0x02` carries a layout byte (0=US,
-1=Turkish Q) followed by text; CANCEL is `0x04`. Responses are READY `0x81`,
-ACCEPTED `0x82`, DONE `0x83`, and ERROR `0xFF`. The Mac caps GATT writes at
-128 bytes and waits for each write response. The Flipper caps text payloads
-at 3072 bytes including the layout byte. Response payloads are at most 124 bytes.
-
-Service: `A6F1D9C0-7B21-4C9A-8E52-3D7710AA0001`.
-TX notifications: `A6F1D9C0-7B21-4C9A-8E52-3D7710AA0002`.
-RX authenticated writes: `A6F1D9C0-7B21-4C9A-8E52-3D7710AA0003`.
-
-Verified on 2026-11-01 with firmware 1.5.1 / API 88.2: both builds and eight unit
-tests pass; the installed Flipper enumerates as a USB HID keyboard; the Mac
-discovers the BLE service and completes the handshake with the Flipper. The user
-confirmed that sending `test` successfully typed it into the USB-connected target.
-Long transfers, cancellation during typing, and Turkish Q output have not yet
-been verified end to end on hardware.
+`--ui-testing` disables Bluetooth and uses a temporary library. This flag is for
+offline UI checks, not device validation. No app build installs the Flipper FAP,
+changes pairing or sends keystrokes. See [setup](../README.md),
+[macros](../docs/MACROS.md) and [protocol](../docs/PROTOCOL.md).

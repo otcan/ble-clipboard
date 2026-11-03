@@ -17,7 +17,8 @@ All fields are drafts. No Store record, pricing schedule or release is created.
 
 Send text and saved macros from your Mac over Bluetooth to your Flipper Zero,
 then type them into a USB-connected device. A Flipper Zero running the compatible
-DuckerTheFlipper application is required and is not included.
+independent BLE Clipboard 0.5.2 application is required. The physical Flipper
+device is not included; the open-source companion is distributed separately.
 
 Keep a local library of reusable snippets and structured text, key-combination
 and delay steps. Add clipboard, timestamp and prompted values, review the output,
@@ -25,9 +26,11 @@ and explicitly start each run. Import and export macro definitions as JSON.
 
 The Mac app has no cloud account, subscription or clipboard history service.
 It types USB keyboard input rather than setting the target's OS clipboard.
-ASCII text, tabs and line breaks are supported; arbitrary Unicode is not.
+ASCII text, tabs and line breaks are supported, plus experimental native Turkish
+letters with Turkish Q; arbitrary Unicode is not.
 Choose from 28 keyboard layouts, which must match the target configuration;
-non-US layouts require their corresponding Flipper SD assets.
+most non-US layouts require their corresponding Flipper SD assets; macOS Turkish
+Q uses a built-in QWERTY-PC map.
 
 Only use with devices you own or are authorized to control. Keystrokes cannot
 be undone, and line breaks can submit forms or execute input. Review each run.

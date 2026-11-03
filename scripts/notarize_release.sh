@@ -49,7 +49,9 @@ spctl --assess --type execute --verbose=2 "$app"
 # Stapling changes the bundle. Repack without rebuilding or re-signing it.
 ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
 cd "$out"
-shasum -a 256 "BLE-Clipboard-$version-universal.zip" ble_clipboard.fap > SHA256SUMS.txt
+shasum -a 256 "BLE-Clipboard-$version-universal.zip" ble_clipboard.fap \
+    ble-clipboard-flipper-source.tar.gz ble-clipboard-source.tar.gz \
+    FLIPPER-SOURCE-SHA256SUMS.txt README.md NOTICE LICENSE > SHA256SUMS.txt
 print "Verified notarized artifacts: $out"
 print "Generate the Homebrew cask from this archive, not the pre-staple archive."
 print "Publication is a separate, explicit step."

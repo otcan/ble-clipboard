@@ -8,23 +8,24 @@ final class MacroTests: XCTestCase {
         for macro in SavedMacro.starters() {
             let result = try MacroCompiler.compile(macro, context: .init(clipboard: "hello", date: context.date,
                 parameters: ["first": "Ada", "second": "Lovelace"]))
-            XCTAssertFalse(result.script.isEmpty)
+            XCTAssertFalse(result.program.isEmpty)
+            XCTAssertEqual(try MacroProgram.decode(result.program), result.operations)
         }
         XCTAssertFalse(try MacroCompiler.compile(SavedMacro.starters()[4], context: .init(clipboard: "", date: context.date,
-            parameters: ["first": "one", "second": "two"])).script.contains("[ENTER]"))
+            parameters: ["first": "one", "second": "two"])).operations.contains(.key(modifiers: 0, code: 0x100)))
     }
 
-    func testLiteralClipboardAndParameterInjectionAreEscaped() throws {
+    func testLiteralClipboardAndParametersNeverBecomeKeyCommands() throws {
         let result = try MacroCompiler.compile(SavedMacro.starters()[0], context: context)
-        XCTAssertEqual(result.script, "[]ENTER] {{timestamp}} []]")
+        XCTAssertEqual(result.operations, [.text("[ENTER] {{timestamp}} []")])
         let macro = SavedMacro(name: "Prompt", steps: [.init(.template, "{{value}}")], parameters: [.init(id: "value", label: "Value")])
         XCTAssertEqual(try MacroCompiler.compile(macro, context: .init(clipboard: "", date: context.date,
-            parameters: ["value": "[WIN+r]{{clipboard}}"])).script, "[]WIN+r]{{clipboard}}")
+            parameters: ["value": "[WIN+r]{{clipboard}}"])).operations, [.text("[WIN+r]{{clipboard}}")])
     }
 
     func testTextStepsDoNotInterpretTemplates() throws {
         let macro = SavedMacro(name: "Literal", steps: [.init(.text, "{{clipboard}}")])
-        XCTAssertEqual(try MacroCompiler.compile(macro, context: context).script, "{{clipboard}}")
+        XCTAssertEqual(try MacroCompiler.compile(macro, context: context).operations, [.text("{{clipboard}}")])
     }
 
     func testRepeatedLargeParametersAreBoundedBeforeExpansion() throws {
@@ -35,17 +36,28 @@ final class MacroTests: XCTestCase {
     @MainActor func testUnsupportedSchemaDuplicatesAndOversizedImportAreRejected() throws {
         let macro = SavedMacro.starters()[0]
         let encoder = JSONEncoder()
-        XCTAssertThrowsError(try MacroLibrary.decode(encoder.encode(MacroDocument(schemaVersion: 2, macros: [macro]))))
+        XCTAssertThrowsError(try MacroLibrary.decode(encoder.encode(MacroDocument(schemaVersion: 4, macros: [macro]))))
         XCTAssertThrowsError(try MacroLibrary.decode(encoder.encode(MacroDocument(macros: [macro, macro]))))
         XCTAssertThrowsError(try MacroLibrary.decode(Data(repeating: 32, count: 2_000_001)))
     }
 
     func testTargetSpecificShortcutAndTimestamp() throws {
         var macro = SavedMacro.starters()[3]
-        XCTAssertTrue(try MacroCompiler.compile(macro, context: context).script.hasPrefix("[WIN+a]"))
+        XCTAssertEqual(try MacroCompiler.compile(macro, context: context).operations.first, .key(modifiers: 8, code: 97))
         macro.target = .windows
-        XCTAssertTrue(try MacroCompiler.compile(macro, context: context).script.hasPrefix("[CTRL+a]"))
-        XCTAssertEqual(try MacroCompiler.compile(SavedMacro.starters()[2], context: context).script, "1970-01-01T00:00:00Z")
+        XCTAssertEqual(try MacroCompiler.compile(macro, context: context).operations.first, .key(modifiers: 1, code: 97))
+        XCTAssertEqual(try MacroCompiler.compile(SavedMacro.starters()[2], context: context).operations, [.text("1970-01-01T00:00:00Z")])
+    }
+
+    func testCompiledTurkishPlanRetainsItsTargetAndLiteralText() throws {
+        for target in TargetSystem.allCases {
+            let macro = SavedMacro(name: "Punctuation", target: target, layout: .turkishQ,
+                                   steps: [.init(.text, "\"<>|^`a~[ENTER]")])
+            let compiled = try MacroCompiler.compile(macro, context: context)
+            XCTAssertEqual(compiled.target, target)
+            XCTAssertEqual(compiled.operations, [.text("\"<>|^`a~[ENTER]")])
+            XCTAssertEqual(compiled.layout, .turkishQ)
+        }
     }
 
     func testInvalidDefinitionsAndExpandedCapacity() throws {
@@ -61,6 +73,32 @@ final class MacroTests: XCTestCase {
         XCTAssertThrowsError(try MacroCompiler.compile(macro, context: context, limit: 2))
         macro.steps = [.init(.text, "\u{1B}")]
         XCTAssertThrowsError(try MacroCompiler.validate(macro))
+    }
+
+    func testTurkishLettersUseLiteralUTF8AndNormalizeDecomposedInput() throws {
+        let letters = "\u{00E7}\u{00C7}\u{011F}\u{011E}\u{0131}\u{0130}\u{00F6}\u{00D6}\u{015F}\u{015E}\u{00FC}\u{00DC}"
+        var macro = SavedMacro(name: "Turkish", layout: .turkishQ, steps: [.init(.text, letters)])
+        let compiled = try MacroCompiler.compile(macro, context: context)
+        XCTAssertEqual(compiled.operations, [.text(letters)])
+        XCTAssertEqual(try MacroProgram.decode(compiled.program), [.text(letters)])
+        macro.steps = [.init(.template, "{{clipboard}} {{value}}")]
+        macro.parameters = [.init(id: "value", label: "Value")]
+        let result = try MacroCompiler.compile(macro, context: .init(clipboard: "s\u{0327}", date: context.date,
+            parameters: ["value": "I\u{0307}[TR:011F][WIN+r]"]))
+        XCTAssertEqual(result.operations, [.text("\u{015F} \u{0130}[TR:011F][WIN+r]")])
+        macro.steps = [.init(.text, "[TR:011F]")]
+        XCTAssertEqual(try MacroCompiler.compile(macro, context: context).operations, [.text("[TR:011F]")])
+        for layout in MacroLayout.allCases where layout != .turkishQ {
+            macro.layout = layout
+            macro.steps = [.init(.text, letters)]
+            XCTAssertThrowsError(try MacroCompiler.compile(macro, context: context))
+        }
+    }
+
+    func testTurkishWireExpansionUsesTheConnectedCapacity() throws {
+        let macro = SavedMacro(name: "Turkish", layout: .turkishQ, steps: [.init(.text, "\u{011F}")])
+        XCTAssertThrowsError(try MacroCompiler.compile(macro, context: context, limit: 12))
+        XCTAssertEqual(try MacroCompiler.compile(macro, context: context, limit: 13).bytes, 13)
     }
 
     @MainActor func testPersistenceImportAndRecovery() throws {

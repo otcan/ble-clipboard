@@ -15,14 +15,14 @@ xcodebuild -project Store/BLEClipboardStore.xcodeproj -scheme BLEClipboardStore 
   -derivedDataPath Store/DerivedData build CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-
 ```
 
-The development app is `Store/DerivedData/Build/Products/Debug/BLE Clipboard
-Macros.app`. Debug has the separate `.MacrosPreview` bundle ID. `--ui-testing`
+The development app is `Store/DerivedData/Build/Products/Debug/BLE Clipboard.app`.
+Debug has the separate `.MacrosPreview` bundle ID. `--ui-testing`
 disables Bluetooth and uses a temporary library for UI tests. Do not use that
 flag for hardware tests. Source-only checks:
 
 ```sh
 swift test --package-path BLEClipboardMac
-sh scripts/check_ducker.sh
+sh scripts/check_clipboard.sh
 sh scripts/archive_store.sh
 ```
 
@@ -30,9 +30,11 @@ The archive script defaults to unsigned validation only. It does not upload,
 change accounts, install firmware or create signing certificates. The Xcode
 target enables App Sandbox, Bluetooth and user-selected read/write files. It
 does not request Accessibility, Full Disk Access, network client/server or root.
-The legacy v2 Bluetooth manager/UI is excluded from the Store compilation.
-The original SwiftPM/direct-download app still selects the legacy entry point,
-so existing release packaging does not mix incompatible Mac/Flipper binaries.
+The Store and direct-download targets share the independent 0.3.0 Quick Paste,
+Macros, binary compiler and CoreBluetooth client. Use the matching independently
+built `ble_clipboard.fap` under Apps > Bluetooth. No vendor submodule, compatibility
+overlay or third-party execution backend is needed. Old public/submitted 0.1.x
+artifacts stay unchanged and are not this version.
 Clipboard access is explicit and no monitoring API is installed.
 
 ## Distribution gates
@@ -78,12 +80,12 @@ and `project.yml`; regenerate the project instead of hand-editing it.
 
 ## Source archives
 
-CI attaches both committed source archives alongside its development binaries.
-`sh scripts/package_sources.sh` creates them locally from Git, excluding ignored
-files and build products. For an archive-only checkout, extract the project
-archive into a working directory and the Ducker archive into `Vendor/Ducker/`
-before following the build instructions. Git submodule commands are only needed
-for a Git clone. The separate Ducker archive retains its upstream license/notices.
+CI attaches project and Flipper source alongside development binaries.
+`sh scripts/package_sources.sh` snapshots allowlisted current project source,
+including local changes but excluding build products, keys and account files.
+`sh scripts/build_flipper.sh` includes its exact C/header source and fingerprints.
+An archive-only checkout needs only the project archive and the public pinned
+Flipper SDK/toolchain; there is no secondary engine archive/submodule to install.
 
 These artifacts make the tested source available with the binaries; they do not
 replace review of Store agreements, source obligations or a permanent source

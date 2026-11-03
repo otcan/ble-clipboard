@@ -2,146 +2,195 @@
   <img src="BLEClipboardMac/Resources/AppIcon.png" width="100" alt="BLE Clipboard icon">
 </p>
 
-<h1 align="center">BLE Clipboard</h1>
+<h1 align="center">BLE Clipboard 0.5.2</h1>
 
-> **Macros / Store development branch:** the new Store target uses
-> DuckerTheFlipper, not the legacy `ble_clipboard.fap`. It adds a local macro
-> library, parameters, structured steps and an explicit run review. This is not
-> yet a Store release or a hardware-validated replacement for 0.1.x.
-> Start with [Macros and Ducker](docs/MACROS.md),
-> [Store build/deployment](Store/README.md), and
-> [implementation status](docs/IMPLEMENTATION-STATUS.md).
-> The installation and verification sections below describe the existing
-> **0.1.x legacy release**. Its SwiftPM/direct-download target is preserved;
-> build the separate Xcode Store target to try the new macro interface.
-
-<p align="center">A wireless clipboard bridge for your Flipper Zero USB keyboard.</p>
-
-<p align="center">
-  <a href="https://github.com/otcan/ble-clipboard/releases">Downloads</a> ·
-  <a href="docs/PROTOCOL.md">Protocol</a> ·
-  <a href="docs/DEVELOPMENT.md">Build from source</a> ·
-  <a href="LICENSE">GPL-3.0</a>
-</p>
-
-![BLE Clipboard for macOS](docs/assets/mac-app.png)
+An independent Mac and Flipper Zero clipboard and macro pair. No Ducker runtime,
+source, protocol, submodule or build dependency is used in this version.
 
 ```text
-Your Mac  -- authenticated Bluetooth LE -->  Flipper Zero  -- USB keyboard -->  Target
+Mac app -- authenticated Bluetooth LE --> Flipper app -- USB keyboard --> Target
 ```
 
-Paste text into the Mac app, then send it through the Flipper's USB port. No SD
-card file copying, DuckyScript editing, or Bluetooth profile switching between
-transfers. The target needs no companion software, only USB keyboard support.
+**Development build, not published or notarized.** Update both apps together.
+Existing Homebrew/public 0.1.x downloads are not this version. The new engine's
+local tests pass, but live focus/shortcut and wider hardware validation remain
+open. No build command installs an app, starts typing or submits to Apple.
 
-## Install
+## Features
 
-### macOS
+- Quick Paste, explicit clipboard loading and UTF-8 text-file import.
+- Local saved macros with literal text, templates, parameters, key combinations
+  and delays; create/edit/reorder/duplicate/delete and JSON import/export.
+- Generic Move Mouse with fixed/ranged X/Y offsets, and timed Repeat blocks
+  with fixed/ranged intervals. Mouse Jiggle is a preset, not an action.
+  Up to 24 hours total, Flipper timer and physical Stop remain available.
+- Send clipboard snapshots or compiled macros to a 20-entry Flipper SD library;
+  browse, confirm Run, or delete on the Flipper without a Mac connection.
+- Expanded-output review and explicit target-focus confirmation before Run.
+- 28 target layout choices shared by Quick Paste and macros.
+- Experimental native Turkish letters with Turkish Q; decomposed input is
+  normalized. Arbitrary Unicode and other native scripts/IME input remain unsupported.
+- Independent typed binary format: `[ENTER]` in text remains text, not a command.
+- Up to 65,536 encoded program bytes; bounded acknowledged chunks, CRC-32 and
+  full program/layout validation before an execution request can type anything.
+- Normal jobs stop on link loss; explicitly standalone jobs continue until
+  completion, physical Stop or USB loss. Reconnect can attach remote Stop.
+  No automatic run after reconnect, restart or USB reconnection.
+- Universal Apple Silicon/Intel Mac build; official Flipper firmware 1.5.1/API 88.2.
+- Info & Companions with version-pinned downloads and device-reported versions;
+  a Flipper About screen includes the matching release QR code.
 
-macOS 14 Sonoma or later. Apple Silicon and Intel are included in one app.
+## Build
+
+Requires macOS 14+, Xcode/Swift and uFBT configured for the matching official SDK.
+No Git submodule setup is needed.
 
 ```sh
-brew tap otcan/ble-clipboard
-brew install --cask otcan/ble-clipboard/ble-clipboard
+swift test --package-path BLEClipboardMac
+sh scripts/check_clipboard.sh
+UFBT=ufbt sh scripts/build_flipper.sh
+scripts/package_release.sh 0.5.2
 ```
 
-Or download the universal `.zip` from [Releases](https://github.com/otcan/ble-clipboard/releases),
-extract it, and move **BLE Clipboard.app** to Applications.
+The package directory is `dist/v0.5.2/`, including the universal ZIP,
+`ble_clipboard.fap`, corresponding source, notices and `SHA256SUMS.txt`.
+The unpacked development Mac app is `BLEClipboardMac/dist/BLE Clipboard.app`.
+The default signature is ad-hoc; Developer ID signing/notarization and publication
+are separate deliberate actions. Never disable Gatekeeper.
 
-**Early release:** the app is ad-hoc signed, not Apple-notarized. macOS may block
-its first launch. Review the source/download, then use the normal macOS
-**System Settings > Privacy & Security > Open Anyway** approval if you trust it.
-Do not disable Gatekeeper. Building locally is another option.
+## Install the Matching Pair
 
-### Flipper Zero
-
-1. Download `ble_clipboard.fap` from the same release.
-2. Exit any running Flipper app before transferring files over USB.
-3. Using qFlipper, put the file at `/ext/apps/Bluetooth/ble_clipboard.fap`.
+1. Use the Mac app built from this 0.5.2 source or its universal ZIP.
+2. Exit the running Flipper app with Back so USB returns to serial mode.
+3. Using qFlipper, place the matching `ble_clipboard.fap` under
+   `/ext/apps/Bluetooth/` after preserving any older app you want to retain.
 4. Open **Apps > Bluetooth > BLE Clipboard** on the Flipper.
 
-The published `.fap` targets official firmware **1.5.1, API 88.2**. A different
-firmware/API may require rebuilding against its matching SDK. Installing the
-Homebrew cask installs only the Mac app, not the Flipper application.
+Use the matching 0.5.2 pair. Existing 0.5.x protocol peers and saved jobs remain
+compatible; older companions show Unknown app version in Info. The mouse-button
+safety fix requires at least the 0.5.1 Flipper binary. Older
+companion apps use different services and cannot run this protocol. No device
+firmware change or pairing-key deletion is required. This repository's scripts
+do not perform installation.
 
 ## Use
 
-1. Open BLE Clipboard on both devices.
-2. Allow Bluetooth access on the Mac if requested.
-3. Compare and approve the pairing code on both devices. The BLE name is **Paste**.
-4. Connect the Flipper's USB cable to your target device and focus a plain text field.
-5. Enter text, use **Load Clipboard**, or open a small text file in the Mac app.
-6. Select the keyboard layout active on the **target**, then **Send to USB**.
+1. Open BLE Clipboard on the Mac. Connect, then choose the Flipper.
+2. Allow Bluetooth and compare/approve matching pairing codes on both devices.
+3. Connect Flipper USB to a target device you own or have permission to operate.
+4. Choose Quick Paste or a saved macro. Match the target OS and keyboard layout.
+5. Review the expanded text/keys, focus a disposable plain text document on the
+   target, confirm the target, then Run on USB. Hide the Mac app if the same Mac
+   is also the USB target; focus restoration must be checked, not assumed.
 
-The app remembers the Bluetooth peripheral and reconnects without pairing again
-while the bond remains valid. It hides after acceptance by default, restoring
-focus when this same Mac is also the USB target. This can be changed in Settings.
+Stop on the Mac or Left on the Flipper cancels the current job and releases keys.
+Back or Left stops a busy job. Back from the idle library exits and restores its
+prior USB/Bluetooth configuration.
+Cancellation cannot undo existing input or a partly entered dead-key sequence.
+Tabs and newlines are real keys; do not begin with terminals, password fields or
+forms that submit on Enter. Completion means HID submission, not target-app receipt.
 
-**Back on the Flipper exits and restores normal USB/Bluetooth.** While the app is
-running, the USB serial port disappears because the Flipper is a keyboard. A
-connected cable is not enough for firmware uploads: exit the app first.
+## Standalone Jobs and Mouse Jiggle
 
-## What's Included
+The mouse icon creates the Mouse Jiggle preset: an eight-hour Repeat containing
+Move Mouse, X/Y ranges -2...2 HID units, and intervals 45...95 seconds. Values
+are sampled on Flipper during execution with the SDK random API. Equal endpoints
+give a fixed value. Moves exclude zero/zero. HID units are not necessarily display
+pixels; repeated relative movement may drift. Movement is not guaranteed invisible,
+undetectable, or to prevent a particular OS/application's idle policy. USB identity and input events
+remain observable. The jiggle operation does not request clicks, keys, sounds,
+vibration or notifications.
 
-- Native SwiftUI Mac utility with dark/light appearance, a focused text editor,
-  live validation, file import, transfer status, cancellation, and an app icon.
-- Flipper application with a compact 128x64 status layout.
-- Authenticated, bonded BLE transport and a versioned handshake.
-- Persistent BLE control connection with separate USB HID output.
-- US and Turkish Q target layouts.
-- No cloud account, network service, clipboard watching, or target-side agent.
-- Universal Mac builds, unit tests, CI, release packaging, and a Homebrew tap.
+Move Mouse releases all Flipper mouse buttons before each movement; a failed
+button-up report stops the job without moving. Startup, Stop and exit clear
+keyboard and mouse state too. This cannot release a physical mouse button held
+on another device or disable an OS drag-lock setting.
 
-## Limits and Safety
+Repeat supports text, keys, delays and Move Mouse. Nested repeats are rejected.
+Its interval is measured between cycle starts; cycles never overlap. Each sequence
+permits 128 steps, at most 512 total including bodies, within 64 KiB encoded.
+The timed deadline takes precedence over pending input and releases held keys.
 
-- **1-3,071 ASCII bytes** per send. Tabs and newlines are supported; arbitrary
-  Unicode, emoji, and non-ASCII letters are rejected, not silently replaced.
-- Turkish Q needs the Flipper firmware asset
-  `/ext/badusb/assets/layouts/tr-TR.kl`. Match the target's active layout.
-- This **types keystrokes**. It does not modify the target's OS clipboard or send
-  Command-V. Enter and Tab retain their normal behavior, so avoid a terminal or
-  submit-on-Enter form for your first test.
-- Requests are not automatically replayed. Check the target after a partial
-  transfer before resending; typing cannot be rolled back by Cancel.
-- "Sent" confirms USB HID report submission, not that a particular target app
-  received or stored the intended text.
-- Only use it with target devices you own or have permission to operate.
+Existing 0.4 mouse definitions migrate to explicit fixed Move Mouse/Delay/Repeat
+steps, preserving IDs, duration and layout. Existing Flipper binary snapshots
+remain unchanged and playable; resend an edited macro to replace its snapshot.
+
+In run review, Mouse Jiggle defaults **Continue on Flipper if this Mac
+disconnects** on. This is an explicit per-run choice, not a change to normal jobs.
+Flipper shows elapsed/remaining time; Left or Back stops it even offline.
+Reconnect the Mac to view and stop the active job, without restarting it.
+USB loss, exiting the Flipper app or power loss stops output permanently.
+
+**Send to Flipper** saves without executing. Confirm plaintext storage and name
+the entry. Clipboard, timestamp and parameter values are fixed at send time.
+Up to 20 entries persist under `apps_data/ble_clipboard/saved`. Sending the same
+macro UUID replaces its snapshot; Quick Paste reviews create separate snapshots.
+On Flipper, Up/Down selects, OK opens, and Run needs a second confirmation with
+a three-second focus allowance. Right opens Delete confirmation. Saved files
+survive restart, but jobs never start automatically.
+
+## Layouts and Text
+
+US/UK, Turkish Q, Bosnian, Czech, Danish, German/Swiss German, Dvorak,
+Spanish/Latin American, French/Belgian/Canadian/Swiss/Mac French, Croatian,
+Hungarian, Italian/Mac Italian, Japanese, Norwegian, Dutch, Portuguese/Brazilian,
+Slovenian, Slovak and Swedish. Most non-US choices require their official `.kl`
+asset under `/ext/badusb/assets/layouts/`. Missing or unmapped assets reject the
+job before execution.
+
+US and macOS Turkish Q are built in. The latter targets Apple's Turkish QWERTY PC
+input source, not Turkish Q Legacy. Native Turkish letters are `U+00C7/00E7`,
+`U+011E/011F`, `U+0130/0131`, `U+00D6/00F6`, `U+015E/015F`, `U+00DC/00FC`.
+Other layouts support printable ASCII, Tab and line breaks, not arbitrary native
+alphabets. A layout choice is not automatic target-language detection.
 
 ## Privacy
 
-Draft text is held in memory and is not intentionally saved by either app.
-It is sent only after an explicit action. The Mac stores the selected layout,
-hide-after-send preference, and CoreBluetooth peripheral identifier. The Flipper
-stores its pairing keys on its SD card. Connection logs omit clipboard contents.
+There is no cloud account, analytics service, clipboard watcher, global keyboard
+hook, shell helper or target-side agent. Clipboard reads are explicit. Saved
+macro definitions and one recovery backup are local; literal secrets saved in
+macros or exported JSON remain plaintext and can enter system backups.
 
-Bluetooth numeric-comparison pairing authenticates the devices and protects the
-transport. The application handshake checks protocol compatibility; it is not a
-separate app password. Other software running on a trusted paired computer may
-have access to its Bluetooth connection. See [Security](SECURITY.md).
+Small active jobs remain in Flipper RAM; jobs over 4 KiB use a temporary SD file,
+removed on completion, Stop, exit and next startup. Normal link loss clears the
+job; a standalone run retains it until stopped or complete. Explicit snapshots
+persist on SD until deleted, with staging/recovery files during replacement.
+SD files are plaintext; deletion is not secure erasure. There is no automatic
+replay history. Logs omit text and parameter contents.
+Bluetooth pairing protects transport; the protocol handshake is compatibility
+negotiation, not a separate credential. CRC is integrity checking, not encryption.
 
-## Development
+## Documentation
 
-```sh
-git clone https://github.com/otcan/ble-clipboard.git
-cd ble-clipboard
-cd BLEClipboardMac
-swift test
-./build_app.sh --universal
-```
+[Macros](docs/MACROS.md) · [Protocol](docs/PROTOCOL.md) ·
+[Build and release](docs/DEVELOPMENT.md) · [Validation](docs/HARDWARE-VALIDATION.md) ·
+[Store preparation](Store/README.md) · [Changelog](CHANGELOG.md)
 
-The Mac bundle is created at `BLEClipboardMac/dist/BLE Clipboard.app`.
-See [Development](docs/DEVELOPMENT.md) for the pinned Flipper SDK, release
-packaging, code signing, tests, and the source layout.
+## Info and Companion Downloads
 
-## Verification
+The Mac toolbar's Info button and Help > Info & Companions show the running Mac
+version and the connected Flipper's reported app/build API version. Legacy peers
+show Unknown rather than an inferred version. Different app versions are flagged
+without claiming they cannot use the same compatible protocol.
 
-A short ASCII transfer has been verified on real hardware from Mac BLE to
-Flipper USB output. The native Mac tests cover framing, fragmented/repeated
-responses, validation, and file loading. Long transfers, cancellation mid-typing,
-and Turkish Q still need broader hardware testing. This is an early **0.1.0** release.
+Opening Info or refreshing it checks only the matching version's public GitHub
+release. Both download links require the exact tag, published assets for the
+universal Mac ZIP and Flipper FAP, and SHA256SUMS.txt. Missing releases show Not
+published yet; offline/rate-limit failures do not claim a release is missing.
+There is no fallback to an older public release or automatic download/install.
+The Setup Guide, source and release notes are pinned to that version too.
 
-## License and Credits
+On Flipper, Right from the idle saved list opens Info; OK opens Downloads with a
+QR code for that app's exact release page. The QR target is not available until
+the release is published. Info never launches a saved job, and busy jobs retain
+the same physical Stop controls. The QR bitmap has a four-module quiet zone and
+is generated by Core Image; camera/display scanning still needs hardware checks.
 
-[GPL-3.0-only](LICENSE). This independent project uses the public
-[Flipper Zero SDK](https://github.com/flipperdevices/flipperzero-firmware).
-Not affiliated with Flipper Devices, Apple, or Homebrew. See [NOTICE](NOTICE).
+The historical 0.1.0 release was clipboard-only, ad-hoc signed and unnotarized,
+with a 3,071-byte ASCII limit and US/Turkish-Q layouts. Those assets are unchanged;
+they are not the 0.5.2 macro app. See the changelog for the preserved history.
+
+## License
+
+[GPL-3.0-only](LICENSE). Uses the public Flipper SDK and Apple's public frameworks.
+Not affiliated with Flipper Devices, Apple or Homebrew. See [NOTICE](NOTICE).

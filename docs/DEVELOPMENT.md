@@ -1,145 +1,94 @@
-# Development
+# Development and Release
 
-## Source Layout
+Version 0.5.2 is an independent Mac/Flipper pair. There is no vendor submodule or
+third-party typing backend. Keep the running app and connected device untouched
+unless installation or live testing is separately requested.
 
-| Path | Contents |
+## Source
+
+| Path | Responsibility |
 | --- | --- |
-| `BLEClipboardMac/` | Swift package, native app, tests, bundle resources |
-| `BluetoothClipboard/` | Flipper FAP, compact display, BLE service, USB typing |
-| `scripts/` | Icon generation, universal packaging, cask generation |
-| `packaging/homebrew/` | Cask template; the live cask is in the separate tap |
-| `.github/workflows/` | CI and tag-triggered draft releases |
+| `BLEClipboardMac/Sources` | Mac UI, library, compiler, binary codec and BLE client |
+| `BluetoothClipboard/clipboard_app.c` | Flipper SDK, BLE/USB, GUI and RAM/SD adapters |
+| `BluetoothClipboard/clipboard_hid.h` | Button-up movement and keyboard/mouse cleanup adapter |
+| `BLEClipboardMac/Sources/BLEClipboardMac/Companion*` | Info UI, pinned release metadata and availability checks |
+| `BluetoothClipboard/transfer_protocol.*` | Independent framed upload/job state machine |
+| `BluetoothClipboard/macro_engine.*` | Typed-program validation and nonblocking execution |
+| `scripts/tests` | Independent fake-USB, lifecycle, sanitizer and fixture checks |
+| `Store/` | Same Mac features with App Sandbox and separate Store preparation gates |
 
-The original developer workspace holds other projects. Its `.gitignore` uses an
-allowlist so those projects, credentials, keys, virtual environments, and SDK
-checkouts cannot be accidentally staged by a normal `git add`.
+## Build and Check
 
-## Mac
-
-Requires macOS 14+, Xcode Command Line Tools, and Swift 5.9+.
-
-```sh
-cd BLEClipboardMac
-swift test
-./build_app.sh                 # current architecture
-./build_app.sh --universal     # arm64 + x86_64
-open "dist/BLE Clipboard.app"
-```
-
-The icon source is `Resources/AppIcon.png`. `scripts/build_icon.sh` makes the
-ICNS sizes using macOS tools. The bundle keeps the same identifier across
-versions so Bluetooth permission and preferences continue to work.
-
-## Flipper
+macOS 14+, Swift 5.9+/Xcode and uFBT 0.2.6 configured for official firmware 1.5.1 /
+API 88.2 are required. No submodule initialization is necessary.
 
 ```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install ufbt==0.2.6
-ufbt update --branch 1.5.1
-cd BluetoothClipboard
-ufbt
-ufbt launch
+swift test --package-path BLEClipboardMac
+sh scripts/check_clipboard.sh
+UFBT=ufbt sh scripts/build_flipper.sh
+BLEClipboardMac/build_app.sh --universal
 ```
 
-The release targets API 88.2, official firmware 1.5.1. For another firmware,
-select its SDK and rebuild. Do not assume a FAP for one API works on another.
-The output is `BluetoothClipboard/dist/ble_clipboard.fap`.
+The host checks run the actual C engine/server with AddressSanitizer and UBSan.
+The Swift tests emit complete wire fixtures; C consumes them and captures fake
+HID reports, including a 64 KiB job, literals, Turkish letters and structured
+macros. On macOS, Carbon checks the captured Turkish map against installed
+keyboard translations. No USB device is opened, no input source is changed and
+no events are injected. These checks are not hardware certification.
 
-`ufbt launch` needs the Flipper's normal USB serial interface. While BLE
-Clipboard runs, USB is HID-only. Exit with Back before attempting an upload.
-The SD card must include the firmware's Turkish Q asset to use that layout.
+The build outputs are `BLEClipboardMac/dist/BLE Clipboard.app` and
+`BluetoothClipboard/dist/ble_clipboard.fap`. The Flipper build also creates
+corresponding source and source fingerprints. It never calls `ufbt launch`.
+Installation requires normal USB serial mode after the owner exits the old app.
 
-## Hardware Checklist
-
-Use a plain text editor on a target you control. Never use a shell for smoke tests.
-
-- Compare the first pairing code on Mac and Flipper; reject mismatches.
-- Confirm reconnection after relaunch without pairing again.
-- Send a short ASCII sample and check the target.
-- Test newlines, tabs, punctuation, and both target layouts.
-- Reject non-ASCII and oversized input without typing partial replacement text.
-- Test a 3071-byte payload, cancellation, and cable/BLE loss during typing.
-- Exit on Flipper and confirm the normal serial/Bluetooth interfaces return.
-
-Only the short ASCII path and automatic reconnection have been observed so far.
-Do not describe the untested hardware cases as certified.
-
-## Releases
-
-1. Update `VERSION`, the bundle version, and `CHANGELOG.md`.
-2. Run unit tests and build the pinned Flipper FAP.
-3. Run `scripts/package_release.sh 0.1.0` from the repository root.
-4. Review the source allowlist, artifacts, signatures, and SHA-256 checksums.
-5. Commit, tag `v0.1.0`, and publish the reviewed assets on GitHub.
-6. Generate the cask into the tap repository:
+## Package 0.5.2
 
 ```sh
-python3 scripts/generate_cask.py 0.1.0 \
-  dist/v0.1.0/BLE-Clipboard-0.1.0-universal.zip \
-  ../homebrew-ble-clipboard/Casks/ble-clipboard.rb
+scripts/package_release.sh 0.5.2
 ```
 
-Commit and push the cask only after its URL and checksum match the public asset.
-The release workflow intentionally creates a **draft**, not an automatic public
-release, so hardware checks and signing can be reviewed first. Release packaging
-uses `ditto` to preserve the macOS application bundle.
+The version must match `VERSION`; the script rejects rebuilding older versions.
+It checks the built FAP's source fingerprints, builds a universal Mac app, uses
+`ditto` for the ZIP, includes both corresponding source archives, README, NOTICE,
+LICENSE, fingerprints and checksums under `dist/v0.5.2`. Source archives snapshot
+the allowlisted current working tree, including local development changes,
+while excluding build products, private keys and local account configuration.
 
-## Signing and Homebrew
+The default signature is ad-hoc. It verifies integrity, not Developer ID identity
+or notarization. No packaging command publishes, submits to Apple, installs the
+apps or changes the user's running processes/device.
 
-The default build uses an ad-hoc signature. This verifies bundle integrity but
-does not provide a Developer ID identity or Apple notarization. Apple Development
-certificates cannot substitute for Developer ID distribution.
+For a later authorized signed release, configure Developer ID locally, use
+`scripts/notarize_release.sh 0.5.2` deliberately, then staple/verify and generate
+the Homebrew cask from the final ZIP. Never rerun a rebuild/resubmit script to
+resume a pending notarization. Never export signing keys or put credentials in
+CI, shell arguments, source or chat. The old 0.1.1 submission/artifacts are not
+part of the 0.5.2 release and must remain unchanged.
 
-For a signed build, set `CODE_SIGN_IDENTITY` to an available Developer ID identity
-before packaging. The build adds a secure timestamp when using a non-ad-hoc
-identity. Never commit signing keys, certificate passwords, or Apple credentials.
+## Companion Metadata
 
-### Notarized releases
+After changing VERSION, run `swift scripts/generate_companion_assets.swift`.
+This uses Core Image to generate the version headers, Swift build version and
+the Flipper QR bitmap, then decodes the QR to verify the exact release URL.
+The PNG/C array include a four-module quiet zone. Generated headers are included
+in the FAP source archive, so a Flipper-only build does not require a QR library
+or Swift at runtime. Local checks and Mac packaging reject stale generated files.
 
-Create the Developer ID Application certificate with the organization's Account
-Holder account. Create its CSR using Keychain Access so the private key stays in
-the login Keychain. Select Apple's current G2 certificate authority in the portal.
-Install the issued certificate on the same Mac that generated the key.
+The Info panel's public GitHub request is explicit (panel open/refresh), ephemeral,
+unauthenticated and version-pinned. Store builds need network-client entitlement
+for this check; no other runtime HTTP service is introduced. Preview identities
+ending in `.InfoPreview`, like `--ui-testing`, use a temporary library, no BLE and
+an offline unpublished-release result. This does not certify the sandboxed target.
 
-Store notarization credentials locally with an interactive password prompt:
+## Publish Later
 
-```sh
-xcrun notarytool store-credentials ble-clipboard-notary \
-  --apple-id "YOUR_APPLE_ID" --team-id "YOUR_TEAM_ID"
-```
+Pass the hardware/release checklist first. Commit the actual tested source,
+push and tag that revision. The workflow creates an ad-hoc draft, not an automatic
+public release. Replace every draft artifact as one matching set if preparing a
+locally signed/notarized release, including the FAP and both source archives.
+Never overwrite assets of an already public immutable version.
 
-Enter the app-specific password in that secure prompt, not a shell command,
-chat, source file, or issue. Use a team-authorized account. Signing identity and
-notarization authentication are separate: installing the certificate alone does
-not authenticate `notarytool`.
-
-After building the Flipper package, prepare the notarized Mac release:
-
-```sh
-export CODE_SIGN_IDENTITY="Developer ID Application: YOUR_ORGANIZATION (YOUR_TEAM_ID)"
-export DEVELOPER_TEAM_ID="YOUR_TEAM_ID"
-export NOTARY_PROFILE="ble-clipboard-notary"
-scripts/notarize_release.sh 0.1.1
-```
-
-The script checks the Keychain profile, builds a universal signed bundle,
-verifies its team, submits the archive, waits for acceptance, staples and verifies
-the ticket, checks Gatekeeper, then repacks and regenerates checksums. It never
-publishes automatically. Keep `dist/notary-logs/` local; those logs are excluded
-from version control and are not release artifacts.
-
-Do not rerun `package_release.sh` after notarizing: rebuilding/re-signing replaces
-the stapled bundle. Generate the cask from the final post-staple ZIP. Publish a
-new version rather than replacing an archive already referenced by Homebrew.
-
-The default GitHub tag workflow still builds an ad-hoc **draft**. For a notarized
-release, replace the draft's ZIP and checksum assets with the verified local
-outputs before publishing it, or configure an explicitly approved signing CI
-workflow. No signing certificate or Apple credential is uploaded to CI by these
-scripts.
-
-The first release uses a third-party Homebrew tap. It does not remove quarantine,
-disable Gatekeeper, or claim admission to the official Homebrew cask repository.
-See the [Homebrew Cask Cookbook](https://docs.brew.sh/Cask-Cookbook) and
-[signing audit policy](https://docs.brew.sh/rubydoc/Cask/Audit.html).
+Generate the cask with `scripts/generate_cask.py` from the final ZIP only after
+the public URL/checksum match. Do not update the installed app or tap as part of
+a development build. Store signing, licensing review, metadata, beta testing and
+App Review remain a separate gated path in `Store/README.md`.

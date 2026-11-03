@@ -13,13 +13,16 @@ Inventory:
 | Component | Current treatment |
 | --- | --- |
 | Existing BLE Clipboard Mac/Flipper source | Repository GPL-3.0-only; retain notices |
-| New Mac adapter, library and UI | Added under the existing repository license; no relicensing |
-| Ducker submodule | Upstream GPL-3.0-or-later source headers; pinned, unmodified |
-| Ducker compatibility overlay | Optional modified build with complete source artifact and upstream notices retained |
-| Ducker test harness | Included only in host tests; upstream notices retained |
+| Mac adapter, library, compiler and UI | Existing repository license; no relicensing |
+| Independent v3 transfer, validator, executor and test harness | Project-owned source under the existing repository license |
 | Apple frameworks | System frameworks, not copied into the source tree |
 | Flipper SDK | Separately licensed build dependency, not in the Mac bundle |
 | Existing artwork | Existing generated master and ICNS; provenance in docs/ARTWORK.md |
+
+Version 0.3.0 removes the prior prototype's external typing engine and its
+submodule/overlay/test dependency. This inventory describes current shipping
+source, not historical experiments. Removing that dependency does not itself
+resolve the existing project-license/Store distribution review.
 
 Before submission, record the reviewer, date, exact Store agreements and chosen
 distribution terms, confirm all contributor rights, and ensure the paid binary's

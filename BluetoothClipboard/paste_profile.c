@@ -43,7 +43,7 @@ static void profile_get_config(GapConfig* config, FuriHalBleProfileParams params
     memset(config, 0, sizeof(GapConfig));
     config->adv_service.UUID_Type = UUID_TYPE_128;
     static const uint8_t uuid[] = {
-        0x01, 0x00, 0xAA, 0x10, 0x77, 0x3D, 0x52, 0x8E,
+        0x01, 0x03, 0xAA, 0x10, 0x77, 0x3D, 0x52, 0x8E,
         0x9A, 0x4C, 0x21, 0x7B, 0xC0, 0xD9, 0xF1, 0xA6,
     };
     memcpy(config->adv_service.Service_UUID_128, uuid, sizeof(uuid));

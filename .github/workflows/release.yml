@@ -17,12 +17,14 @@ jobs:
           python-version: "3.12"
       - run: pip install ufbt==0.2.6
       - run: ufbt update --branch 1.5.1
-      - run: ufbt
-        working-directory: BluetoothClipboard
+      - run: sh scripts/build_flipper.sh
       - uses: actions/upload-artifact@v4
         with:
           name: flipper-release
-          path: BluetoothClipboard/dist/ble_clipboard.fap
+          path: |
+            BluetoothClipboard/dist/ble_clipboard.fap
+            BluetoothClipboard/dist/ble-clipboard-flipper-source.tar.gz
+            BluetoothClipboard/dist/BUILD-SOURCE-SHA256SUMS.txt
 
   release:
     needs: flipper
@@ -37,6 +39,8 @@ jobs:
           path: BluetoothClipboard/dist
       - run: swift test
         working-directory: BLEClipboardMac
+      - name: Independent protocol and keyboard host checks
+        run: sh scripts/check_clipboard.sh
       - name: Package universal release
         env:
           TAG: ${{ github.ref_name }}

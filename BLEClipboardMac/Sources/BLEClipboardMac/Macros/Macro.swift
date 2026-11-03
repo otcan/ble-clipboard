@@ -3,72 +3,10 @@ import Foundation
 enum TargetSystem: String, Codable, CaseIterable, Identifiable {
     case macOS, windows, linux
     var id: String { rawValue }
+    var wireID: UInt8 { UInt8(Self.allCases.firstIndex(of: self)!) }
 }
 
-enum MacroLayout: String, Codable, CaseIterable, Identifiable {
-    case us = "QWERTY US"
-    case turkishQ = "tr-TR.kl"
-    case bosnian = "ba-BA.kl"
-    case czech = "cz_CS.kl"
-    case danish = "da-DA.kl"
-    case germanSwiss = "de-CH.kl"
-    case german = "de-DE.kl"
-    case dvorak = "dvorak.kl"
-    case british = "en-UK.kl"
-    case spanish = "es-ES.kl"
-    case spanishLatinAmerica = "es-LA.kl"
-    case frenchBelgian = "fr-BE.kl"
-    case frenchCanadian = "fr-CA.kl"
-    case frenchSwiss = "fr-CH.kl"
-    case frenchMac = "fr-FR-mac.kl"
-    case french = "fr-FR.kl"
-    case croatian = "hr-HR.kl"
-    case hungarian = "hu-HU.kl"
-    case italianMac = "it-IT-mac.kl"
-    case italian = "it-IT.kl"
-    case japanese = "ja-JP.kl"
-    case norwegian = "nb-NO.kl"
-    case dutch = "nl-NL.kl"
-    case portugueseBrazil = "pt-BR.kl"
-    case portuguese = "pt-PT.kl"
-    case slovenian = "si-SI.kl"
-    case slovak = "sk-SK.kl"
-    case swedish = "sv-SE.kl"
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .us: return "English (US)"
-        case .turkishQ: return "Turkish Q"
-        case .bosnian: return "Bosnian"
-        case .czech: return "Czech"
-        case .danish: return "Danish"
-        case .germanSwiss: return "German (Swiss)"
-        case .german: return "German"
-        case .dvorak: return "Dvorak"
-        case .british: return "English (UK)"
-        case .spanish: return "Spanish"
-        case .spanishLatinAmerica: return "Spanish (Latin America)"
-        case .frenchBelgian: return "French (Belgium)"
-        case .frenchCanadian: return "French (Canada)"
-        case .frenchSwiss: return "French (Swiss)"
-        case .frenchMac: return "French (Mac)"
-        case .french: return "French"
-        case .croatian: return "Croatian"
-        case .hungarian: return "Hungarian"
-        case .italianMac: return "Italian (Mac)"
-        case .italian: return "Italian"
-        case .japanese: return "Japanese"
-        case .norwegian: return "Norwegian"
-        case .dutch: return "Dutch"
-        case .portugueseBrazil: return "Portuguese (Brazil)"
-        case .portuguese: return "Portuguese"
-        case .slovenian: return "Slovenian"
-        case .slovak: return "Slovak"
-        case .swedish: return "Swedish"
-        }
-    }
-    var responseName: String { self == .us ? rawValue : String(rawValue.dropLast(3)) }
-}
+typealias MacroLayout = KeyboardLayout
 
 struct MacroParameter: Codable, Equatable, Identifiable {
     var id: String
@@ -77,7 +15,8 @@ struct MacroParameter: Codable, Equatable, Identifiable {
 
 struct MacroStep: Codable, Equatable, Identifiable {
     enum Kind: String, Codable, CaseIterable, Identifiable {
-        case text, template, chord, delay
+        case text, template, chord, delay, moveMouse, repeatFor, mouseJiggle
+        static let allCases: [Kind] = [.text, .template, .chord, .delay, .moveMouse, .repeatFor]
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -85,6 +24,9 @@ struct MacroStep: Codable, Equatable, Identifiable {
             case .template: return "Template"
             case .chord: return "Key combination"
             case .delay: return "Delay"
+            case .mouseJiggle: return "Mouse Jiggle"
+            case .moveMouse: return "Move Mouse"
+            case .repeatFor: return "Repeat"
             }
         }
     }
@@ -92,6 +34,33 @@ struct MacroStep: Codable, Equatable, Identifiable {
     var kind: Kind
     var value: String
     var milliseconds: Int
+    var mouseDurationSeconds: Int?
+    var mouseIntervalSeconds: Int?
+    var mouseIntervalMaximumSeconds: Int?
+    var varyingInterval: Bool?
+    var mouseXMinimum: Int?
+    var mouseXMaximum: Int?
+    var mouseYMinimum: Int?
+    var mouseYMaximum: Int?
+    var varyingMouse: Bool?
+    var children: [MacroStep]?
+
+    var jiggleDuration: Int { mouseDurationSeconds ?? 28_800 }
+    var jiggleInterval: Int { mouseIntervalSeconds ?? 60 }
+    var intervalMaximum: Int { varyingInterval == true ? (mouseIntervalMaximumSeconds ?? jiggleInterval) : jiggleInterval }
+    var xMinimum: Int { mouseXMinimum ?? 1 }
+    var xMaximum: Int { varyingMouse == true ? (mouseXMaximum ?? xMinimum) : xMinimum }
+    var yMinimum: Int { mouseYMinimum ?? 0 }
+    var yMaximum: Int { varyingMouse == true ? (mouseYMaximum ?? yMinimum) : yMinimum }
+    var summary: String {
+        switch kind {
+        case .delay: return "\(milliseconds) ms"
+        case .mouseJiggle: return "\(jiggleDuration / 60) min; every \(jiggleInterval) s"
+        case .moveMouse: return "X \(xMinimum)...\(xMaximum), Y \(yMinimum)...\(yMaximum) HID units"
+        case .repeatFor: return "\(jiggleDuration / 60) min; interval \(jiggleInterval)...\(intervalMaximum) s"
+        default: return value
+        }
+    }
 
     init(_ kind: Kind, _ value: String = "", milliseconds: Int = 250) {
         self.kind = kind
@@ -120,11 +89,44 @@ struct SavedMacro: Codable, Equatable, Identifiable {
             ], parameters: [.init(id: "first", label: "First field"), .init(id: "second", label: "Second field")]),
         ]
     }
+
+    static func mouseJiggler() -> SavedMacro {
+        var move = MacroStep(.moveMouse)
+        move.varyingMouse = true
+        move.mouseXMinimum = -2; move.mouseXMaximum = 2
+        move.mouseYMinimum = -2; move.mouseYMaximum = 2
+        var repeating = MacroStep(.repeatFor)
+        repeating.varyingInterval = true
+        repeating.mouseIntervalSeconds = 45; repeating.mouseIntervalMaximumSeconds = 95
+        repeating.children = [move]
+        return SavedMacro(name: "Mouse Jiggle", steps: [repeating])
+    }
+
+    var flattenedSteps: [MacroStep] { steps.flatMap { [$0] + ($0.kind == .repeatFor ? ($0.children ?? []) : []) } }
+    var prefersStandalone: Bool {
+        steps.contains { $0.kind == .mouseJiggle || ($0.kind == .repeatFor && ($0.children ?? []).contains { $0.kind == .moveMouse }) }
+    }
+    var migratingLegacyMouse: SavedMacro {
+        var result = self
+        result.steps = steps.map { step in
+            guard step.kind == .mouseJiggle else { return step }
+            var repeatStep = step; repeatStep.kind = .repeatFor
+            var back = MacroStep(.moveMouse); back.mouseXMinimum = -1
+            repeatStep.children = [.init(.moveMouse), .init(.delay, milliseconds: 50), back]
+            return repeatStep
+        }
+        return result
+    }
 }
 
 struct MacroDocument: Codable, Equatable {
-    var schemaVersion = 1
+    var schemaVersion: Int
     var macros: [SavedMacro]
+    init(schemaVersion: Int? = nil, macros: [SavedMacro]) {
+        self.schemaVersion = schemaVersion ?? (macros.contains { $0.steps.contains { [.moveMouse, .repeatFor].contains($0.kind) } } ? 3 :
+            macros.contains { $0.steps.contains { $0.kind == .mouseJiggle } } ? 2 : 1)
+        self.macros = macros
+    }
 }
 
 enum MacroError: LocalizedError {
@@ -141,10 +143,20 @@ struct MacroRunContext {
 }
 
 struct CompiledMacro {
-    let script: String
+    let program: Data
+    let operations: [MacroOperation]
     let preview: [String]
     let layout: MacroLayout
-    var bytes: Int { script.utf8.count }
+    let target: TargetSystem
+    init(operations: [MacroOperation], preview: [String], layout: MacroLayout, target: TargetSystem = .macOS) throws {
+        self.program = try MacroProgram.encode(operations)
+        self.operations = operations
+        self.preview = preview
+        self.layout = layout
+        self.target = target
+    }
+    var bytes: Int { program.count }
+    var hasMouse: Bool { operations.contains { $0.hasMouse } }
 }
 
 enum MacroCompiler {
@@ -178,73 +190,137 @@ enum MacroCompiler {
         }
         let known = Set(macro.parameters.map(\.id)).union(["clipboard", "timestamp"])
         var totalDelay = 0
-        var hasOutput = false
-        for step in macro.steps {
-            switch step.kind {
-            case .text:
-                try validateText(step.value)
-                hasOutput = hasOutput || !step.value.isEmpty
-            case .template:
-                try validateText(step.value)
-                for name in try templateTokens(step.value) where !known.contains(name) {
-                    throw MacroError.invalid("Unknown parameter: \(name).")
+        var mouseTime = 0
+        var identifiers = Set<UUID>()
+        var nodes = 0
+        var definitionBytes = 0
+        func validateSteps(_ steps: [MacroStep], nested: Bool) throws -> Bool {
+            guard !steps.isEmpty, steps.count <= 128 else { throw MacroError.invalid("Each sequence needs 1-128 steps.") }
+            var hasOutput = false
+            for step in steps {
+                nodes += 1; definitionBytes += step.value.utf8.count
+                guard nodes <= 512, definitionBytes <= maximumBytes,
+                      identifiers.insert(step.id).inserted else { throw MacroError.invalid("Too many steps, duplicate IDs or oversized definitions.") }
+                guard step.kind == .repeatFor || step.children?.isEmpty != false else {
+                    throw MacroError.invalid("Only Repeat can contain child steps.")
                 }
-                hasOutput = hasOutput || !step.value.isEmpty
-            case .chord:
-                _ = try chord(step.value, target: macro.target)
-                hasOutput = true
-            case .delay:
-                guard (1...30_000).contains(step.milliseconds) else {
-                    throw MacroError.invalid("Each delay must be 1-30000 ms.")
+                switch step.kind {
+                case .text:
+                    try validateText(step.value, layout: macro.layout)
+                    hasOutput = hasOutput || !step.value.isEmpty
+                case .template:
+                    try validateText(step.value, layout: macro.layout)
+                    for name in try templateTokens(step.value) where !known.contains(name) {
+                        throw MacroError.invalid("Unknown parameter: \(name).")
+                    }
+                    hasOutput = hasOutput || !step.value.isEmpty
+                case .chord:
+                    _ = try chord(step.value, target: macro.target)
+                    hasOutput = true
+                case .delay:
+                    guard (1...30_000).contains(step.milliseconds) else {
+                        throw MacroError.invalid("Each delay must be 1-30000 ms.")
+                    }
+                    totalDelay += step.milliseconds
+                case .mouseJiggle:
+                    guard !nested, (1...86_400).contains(step.jiggleDuration), (1...3_600).contains(step.jiggleInterval),
+                          mouseTime <= 86_400 - step.jiggleDuration else {
+                        throw MacroError.invalid("Mouse Jiggle allows at most 24 hours total and intervals of 1-3600 seconds.")
+                    }
+                    mouseTime += step.jiggleDuration
+                    hasOutput = true
+                case .moveMouse:
+                    guard (-127...127).contains(step.xMinimum), (-127...127).contains(step.xMaximum),
+                          (-127...127).contains(step.yMinimum), (-127...127).contains(step.yMaximum),
+                          step.xMinimum <= step.xMaximum, step.yMinimum <= step.yMaximum,
+                          step.xMinimum != 0 || step.xMaximum != 0 || step.yMinimum != 0 || step.yMaximum != 0 else {
+                        throw MacroError.invalid("Move Mouse needs ordered X/Y ranges within -127...127 and a nonzero movement.")
+                    }
+                    hasOutput = true
+                case .repeatFor:
+                    guard !nested, (1...86_400).contains(step.jiggleDuration),
+                          (1...3_600).contains(step.jiggleInterval), step.intervalMaximum >= step.jiggleInterval,
+                          step.intervalMaximum <= 3_600, mouseTime <= 86_400 - step.jiggleDuration else {
+                        throw MacroError.invalid("Repeat permits 24 hours total, intervals of 1-3600 seconds, and no nesting.")
+                    }
+                    mouseTime += step.jiggleDuration
+                    guard try validateSteps(step.children ?? [], nested: true) else { throw MacroError.invalid("Repeat needs an output action.") }
+                    hasOutput = true
                 }
-                totalDelay += step.milliseconds
             }
+            return hasOutput
         }
-        guard hasOutput, totalDelay <= 120_000 else {
+        guard try validateSteps(macro.steps, nested: false), totalDelay <= 120_000 else {
             throw MacroError.invalid("A macro needs output and at most 120 seconds of explicit delays.")
-        }
-        guard macro.steps.reduce(0, { $0 + $1.value.utf8.count }) <= maximumBytes else {
-            throw MacroError.invalid("Macro definitions exceed the size limit.")
         }
     }
 
     static func compile(_ macro: SavedMacro, context: MacroRunContext, limit: Int = maximumBytes) throws -> CompiledMacro {
         try validate(macro)
-        var script = ""
+        var operations: [MacroOperation] = []
         var preview: [String] = []
-        for step in macro.steps {
-            switch step.kind {
-            case .text, .template:
-                let text = step.kind == .text ? step.value : try expand(step.value, context: context)
-                try validateText(text)
-                script += escapeLiteral(text)
-                preview.append("Text: \(text)")
-            case .chord:
-                let key = try chord(step.value, target: macro.target)
-                script += "[\(key)]"
-                preview.append("Key: \(key)")
-            case .delay:
-                script += "[DELAY:\(step.milliseconds)]"
-                preview.append("Delay: \(step.milliseconds) ms")
-            }
-            guard script.utf8.count <= min(limit, maximumBytes) else {
+        var encodedBytes = 6
+        let capacity = min(limit, maximumBytes)
+        func reserve(_ count: Int) throws {
+            guard encodedBytes <= capacity, count <= capacity - encodedBytes else {
                 throw MacroError.invalid("Expanded macro exceeds the connected device's capacity.")
             }
+            encodedBytes += count
         }
-        guard !script.isEmpty else { throw MacroError.invalid("There is no text or key to send.") }
-        return CompiledMacro(script: script, preview: preview, layout: macro.layout)
+        func compileSteps(_ steps: [MacroStep], indent: String = "") throws -> [MacroOperation] {
+            var result: [MacroOperation] = []
+            for step in steps {
+                switch step.kind {
+                case .text, .template:
+                    let text = step.kind == .text ? step.value : try expand(step.value, context: context, layout: macro.layout)
+                    try validateText(text, layout: macro.layout)
+                    let normalized = text.precomposedStringWithCanonicalMapping
+                        .replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+                    if !normalized.isEmpty { try reserve(5 + normalized.utf8.count); result.append(.text(normalized)) }
+                    preview.append("\(indent)Text: \(normalized)")
+                case .chord:
+                    try reserve(4)
+                    let key = try chord(step.value, target: macro.target)
+                    result.append(key)
+                    preview.append("\(indent)Key: \(step.value)")
+                case .delay:
+                    try reserve(5)
+                    result.append(.delay(UInt32(step.milliseconds)))
+                    preview.append("\(indent)Delay: \(step.milliseconds) ms")
+                case .mouseJiggle:
+                    try reserve(9)
+                    result.append(.mouseJiggle(duration: UInt32(step.jiggleDuration) * 1_000,
+                                                    interval: UInt32(step.jiggleInterval) * 1_000))
+                    preview.append("Mouse Jiggle: \(step.summary); no clicks or keys")
+                case .moveMouse:
+                    try reserve(5)
+                    result.append(.moveMouse(xMin: Int8(step.xMinimum), xMax: Int8(step.xMaximum),
+                                             yMin: Int8(step.yMinimum), yMax: Int8(step.yMaximum)))
+                    preview.append("\(indent)Move Mouse: \(step.summary)")
+                case .repeatFor:
+                    try reserve(19)
+                    preview.append("\(indent)Repeat: \(step.summary)")
+                    let body = try compileSteps(step.children ?? [], indent: indent + "  ")
+                    result.append(.repeatFor(duration: UInt32(step.jiggleDuration) * 1_000,
+                                             intervalMin: UInt32(step.jiggleInterval) * 1_000,
+                                             intervalMax: UInt32(step.intervalMaximum) * 1_000, body: body))
+                }
+            }
+            return result
+        }
+        operations = try compileSteps(macro.steps)
+        let result = try CompiledMacro(operations: operations, preview: preview, layout: macro.layout, target: macro.target)
+        guard result.bytes <= min(limit, maximumBytes) else {
+            throw MacroError.invalid("Expanded macro exceeds the connected device's capacity.")
+        }
+        return result
     }
 
-    static func validateText(_ text: String) throws {
+    static func validateText(_ text: String, layout: MacroLayout = .us) throws {
         guard text.utf8.count <= maximumBytes,
-              text.utf8.allSatisfy({ (32...126).contains($0) || [9, 10, 13].contains($0) }) else {
-            throw MacroError.invalid("USB text supports ASCII, tabs and line breaks only.")
+              text.precomposedStringWithCanonicalMapping.unicodeScalars.allSatisfy(layout.supports) else {
+            throw MacroError.invalid("USB text supports ASCII, tabs and line breaks; Turkish letters require Turkish Q (experimental).")
         }
-    }
-
-    // Ducker's empty tag emits a literal opening bracket in both typing paths.
-    static func escapeLiteral(_ text: String) -> String {
-        text.replacingOccurrences(of: "[", with: "[]")
     }
 
     static func templateTokens(_ text: String) throws -> [String] {
@@ -259,7 +335,7 @@ enum MacroCompiler {
         return matches.compactMap { Range($0.range(at: 1), in: text).map { String(text[$0]) } }
     }
 
-    private static func expand(_ template: String, context: MacroRunContext) throws -> String {
+    private static func expand(_ template: String, context: MacroRunContext, layout: MacroLayout) throws -> String {
         _ = try templateTokens(template)
         let matches = token.matches(in: template, range: NSRange(template.startIndex..., in: template))
         var result = template
@@ -277,7 +353,7 @@ enum MacroCompiler {
                 value = supplied
             }
             // Replacement values are never recursively interpreted as templates or commands.
-            try validateText(value)
+            try validateText(value, layout: layout)
             byteCount += value.utf8.count - match.range.length
             guard byteCount <= maximumBytes else { throw MacroError.invalid("Expanded template is too large.") }
             result.replaceSubrange(range, with: value)
@@ -285,7 +361,7 @@ enum MacroCompiler {
         return result
     }
 
-    private static func chord(_ value: String, target: TargetSystem) throws -> String {
+    private static func chord(_ value: String, target: TargetSystem) throws -> MacroOperation {
         let keys = value.uppercased().split(separator: "+", omittingEmptySubsequences: false).map(String.init)
         guard let key = keys.last, !key.isEmpty, keys.count <= 5 else {
             throw MacroError.invalid("Invalid key combination.")
@@ -296,7 +372,8 @@ enum MacroCompiler {
               specialKeys.contains(key) || (key.utf8.count == 1 && key.utf8.allSatisfy({ (65...90).contains($0) || (48...57).contains($0) })) else {
             throw MacroError.invalid("Unsupported key combination: \(value).")
         }
-        let outputKey = key.count == 1 ? key.lowercased() : key
-        return (Array(modifiers) + [outputKey]).joined(separator: "+")
+        let code = MacroKey.special[key] ?? UInt16(key.lowercased().utf8.first!)
+        let bits: [String: UInt8] = ["CTRL": 1, "SHIFT": 2, "ALT": 4, "WIN": 8]
+        return .key(modifiers: modifiers.reduce(0) { $0 | bits[$1]! }, code: code)
     }
 }

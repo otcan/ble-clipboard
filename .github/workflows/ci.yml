@@ -2,7 +2,7 @@ name: Build and Test
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/independent-0.3.0]
   pull_request:
   workflow_dispatch:
 
@@ -18,7 +18,15 @@ jobs:
         working-directory: BLEClipboardMac
         run: swift test
       - name: Validate release script syntax
-        run: zsh -n BLEClipboardMac/build_app.sh scripts/build_icon.sh scripts/package_release.sh scripts/notarize_release.sh
+        run: |
+          for script in BLEClipboardMac/build_app.sh scripts/build_icon.sh scripts/package_release.sh scripts/notarize_release.sh; do
+            zsh -n "$script"
+          done
+          for script in scripts/build_flipper.sh scripts/check_clipboard.sh scripts/package_sources.sh; do
+            sh -n "$script"
+          done
+      - name: Independent protocol and keyboard host checks
+        run: sh scripts/check_clipboard.sh
       - name: Universal app and icon
         run: BLEClipboardMac/build_app.sh --universal
       - name: Verify bundle
@@ -36,8 +44,7 @@ jobs:
       - run: pip install ufbt==0.2.6
       - run: ufbt update --branch 1.5.1
       - name: Build API 88.2 application
-        working-directory: BluetoothClipboard
-        run: ufbt
+        run: sh scripts/build_flipper.sh
       - uses: actions/upload-artifact@v4
         with:
           name: flipper-api-88.2

@@ -31,17 +31,17 @@ else
         -configuration Release -destination 'generic/platform=macOS' \
         -archivePath "$ARCHIVE" archive CODE_SIGNING_ALLOWED=NO
 fi
-APP="$ARCHIVE/Products/Applications/BLE Clipboard Macros.app"
+APP="$ARCHIVE/Products/Applications/BLE Clipboard.app"
 plutil -lint "$APP/Contents/Info.plist" "$APP/Contents/Resources/PrivacyInfo.xcprivacy"
 [ -n "$(plutil -extract NSBluetoothAlwaysUsageDescription raw "$APP/Contents/Info.plist")" ]
 [ "$(plutil -extract CFBundleIdentifier raw "$APP/Contents/Info.plist")" = com.oguzcanunver.BLEClipboardMac ]
 [ "$(plutil -extract LSApplicationCategoryType raw "$APP/Contents/Info.plist")" = public.app-category.utilities ]
-[ "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = 0.2.0 ]
+[ "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "$(cat "$ROOT/VERSION")" ]
 [ "$(plutil -extract CFBundleIconFile raw "$APP/Contents/Info.plist")" = AppIcon ]
 [ -f "$APP/Contents/Resources/AppIcon.icns" ]
 [ -f "$APP/Contents/Resources/LICENSE" ]
 [ -f "$APP/Contents/Resources/NOTICE" ]
-lipo "$APP/Contents/MacOS/BLE Clipboard Macros" -verify_arch arm64 x86_64
+lipo "$APP/Contents/MacOS/BLE Clipboard" -verify_arch arm64 x86_64
 if [ "$MODE" = --signed ]; then
     codesign --verify --deep --strict "$APP"
     printf '%s\n' 'Signed archive created. Export/validation/upload remain separate; this script does not submit.'

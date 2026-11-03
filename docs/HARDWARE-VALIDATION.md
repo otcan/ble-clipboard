@@ -1,4 +1,150 @@
-# Live hardware validation - 2026-11-01
+# Hardware Validation
+
+## Current 0.5.2 - Companion Info and Installation
+
+All 42 Swift tests pass, including exact-version asset validation, draft/missing/
+incomplete/offline release states, anonymous pinned requests through a URLSession
+stub, optional version queries and unchanged transfer state. The C sanitizer
+checks query metadata during an autonomous run and verify unchanged cursor,
+deadline, key/mouse output counts and release count. Old clients receive no
+unsolicited new frame, and older servers are not sent an unsupported query.
+The 0.5.1 HID adapter regression checks still pass. The FAP builds for target 7 /
+API 88.2 without launching or communicating with a physical device.
+
+An isolated `.InfoPreview` app was inspected with a temporary macro library,
+Bluetooth disabled and a fixed offline unpublished-release result. Both toolbar
+and Help open the Info panel; version 0.5.2, companion labels and pinned resources
+fit without overlap. Mac/FAP download buttons and version-specific resource links
+are disabled, including their accessibility actions, while the release is not
+published. At that preview checkpoint the installed 0.5.1 app was not replaced,
+quit or connected.
+
+After explicit owner readiness on 2026-11-03, both 0.5.2 apps were installed with
+0.5.1 backups locally and a hidden non-FAP backup on Flipper SD. Staged and final
+full FAP readbacks match SHA-256
+`643e7cddcb44154f8ff2e9d5896aee2063eb3eee9924dd259452d3a12d917b2a`.
+The loader was idle before/after installation; the Flipper app was not launched.
+SDK metadata matches API 88.2/target 7; the package checksum identifies this exact
+patch, since the SDK metadata stores only major/minor 0.5.
+
+The installed Mac bundle matches the reviewed universal ZIP and passes signature,
+arm64/x86_64 and version checks. Its real Info panel reports 0.5.2 and its anonymous
+matching-release check returns Not published yet, with both downloads disabled.
+It remains disconnected, with no job sent or executed. The Mac macro library is
+byte-for-byte unchanged; firmware, bonds and saved SD jobs were not modified.
+
+The generated 41x41 QR bitmap has a four-module quiet zone; Core Image decoded it
+to the exact v0.5.2 release URL. This is an offline bitmap check, not a physical
+camera/display scan. On-device Info navigation, physical QR scanning, live version
+reporting and sandboxed network checks remain release gates. No live input was
+generated, no existing snapshots were changed, and no public release was created.
+
+## Previous 0.5.1 - Mouse Button Fix and Installation
+
+The owner reported drag behavior in 0.5.0. Firmware 1.5.1's mouse-move function
+retains button state, while this app previously only cleared keyboard state.
+The new shared HID adapter clears all eight button bits before every move and
+refuses movement if the button-up report fails. Startup, Stop, completion/failure
+and exit also clear mouse state. This is a concrete stale-state defect consistent
+with the report, not a live capture proving the cause on the owner's target.
+See the [firmware 1.5.1 HID implementation](https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/targets/f7/furi_hal/furi_hal_usb_hid.c).
+
+Sanitizer-enabled adapter tests model the firmware's persistent state, reproduce
+the old held-button move and verify neutral button-up reports before exact X/Y
+movement, all button masks, failure gating and disconnected cleanup. They send
+no real USB input. All 37 Swift tests and the C sanitizer-enabled
+keyboard/layout/engine/storage/adapter checks pass locally. The FAP builds for
+target 7/API 88.2. These checks do not certify physical target behavior.
+Physical drag-lock/another mouse's held button and target-side behavior are not
+controlled by this fix; no live 0.5.1 input test has been run.
+
+After explicit owner readiness on 2026-11-03, the matching 0.5.1 pair was installed
+with 0.5.0 app backups locally and a hidden non-FAP backup on Flipper SD. The new
+FAP was staged and read back before replacement, then fully read back again;
+SHA-256 `38fc1547a15db284be9b73d5eed54807a2b1cac359e74bdaa8011b0d1edc8c78`
+matches the reviewed package. Target 7/API 88.2 metadata checks pass; the SDK
+stores only major/minor 0.5, so the checksum identifies this patch build. The
+loader was idle before/after installation, and the Flipper app was not launched.
+
+The Mac bundle matches the reviewed ZIP and passes deep/strict ad-hoc signature
+and arm64/x86_64 checks. Its installed About panel shows Version 0.5.1 (1).
+The Mac library is byte-for-byte unchanged; saved SD jobs, firmware and bonds
+were not modified. The Mac was reopened from /Applications, disconnected, with
+the existing eight-hour ranged preset selected. No job was sent or run. Existing
+saved jobs gain this movement guard from the FAP update without needing a resend.
+
+## Previous 0.5.0 - Installation and Local Checks
+
+After explicit owner readiness on 2026-11-03, both 0.5.0 apps were installed with
+the previous 0.4.0 apps backed up locally and the Flipper FAP also backed up on SD.
+The installed Mac bundle matches the reviewed ZIP, has both arm64/x86_64 slices,
+and passes deep/strict ad-hoc signature verification (not notarization). The
+Flipper FAP was staged, fully read back, renamed into place and fully read back
+again; its SHA-256 matches the package. The loader was idle before and after;
+the Flipper app was not launched. Firmware, bonds and saved SD jobs were untouched.
+
+The Mac was opened from /Applications and left disconnected. Its existing Mouse
+Jiggle preset was updated through MacroLibrary with a JSON backup: ID, target,
+layout and 480-minute duration preserved; Repeat interval 45...95 seconds and
+Move Mouse X/Y -2...2 HID units. The installed editor and summary show these
+values. No job was sent or executed. An older saved Flipper snapshot must be
+replaced explicitly by resending the preset.
+
+Move Mouse/Repeat tests cover bounded range sampling, variable intervals, excluded
+zero vectors, entropy failure, generic body validation and byte lengths, old saved
+binary compatibility, schema migration, monotonic progress, and deadline key release.
+Eight-hour clock simulations, timer rollover, offline Stop and USB-loss/no-restart
+pass with fake USB. The matching sources build for the official 1.5.1/API 88.2 SDK.
+No hardware input was generated by those installation/automated checks. The owner
+subsequently connected to Rapigak and reported dragging during use. Physical focus,
+drift, idle-policy behavior and long-duration stability remain unverified;
+variability is not undetectability.
+
+## Previous 0.4.0 Installation and Local Checks
+
+The current Mac and Flipper apps use an independent v4 transport and typed
+binary execution engine. None of the older device passes below certify this
+update. The 0.3.0 pair was previously installed with file verification and its
+28-layout Mac menu inspected, not a typing test. After explicit owner readiness,
+the 0.4.0 pair was installed with backups: Mac universal signature/version/bundle
+comparison and full Flipper file read-back/SHA-256/manifest checks passed. Flipper
+was idle before/after file installation; its 0.4.0 app was not launched or executed.
+The Mac was opened from /Applications and a stopped eight-hour Mouse Jiggle
+definition was saved in its library. No live HID or pairing changes were made.
+
+Local checks cover fragmented frames, complete CRC-verified uploads, explicit
+execution, all 28 layout IDs and three target IDs, native Turkish UTF-8,
+literal command-looking text, 64 KiB programs, RAM/large-job paths, Stop during
+upload/execution, queue expiry, USB/BLE loss, storage/TX failures and malformed
+programs. The host tests compile the actual C engine/server with sanitizers and
+feed wire fixtures emitted by the Swift compiler/session. No USB device is opened.
+
+Standalone tests simulate eight hours, millisecond rollover, offline physical Stop,
+reconnect/remote Stop and USB failure with no restart. Filesystem stubs compile
+the actual SD library and exercise persistence, bounded 64 KiB copy, slot limits,
+corrupt files, failed writes/sync/renames and interrupted replacement/recovery.
+These checks do not establish physical multi-hour stability or OS idle behavior.
+
+An isolated 0.4.0 direct-build preview (`--ui-testing`, separate app identity and
+temporary library, Bluetooth disabled) was inspected: mouse preset creation,
+direct numeric duration entry and persistence, first-click Send opening Save mode,
+plaintext snapshot acknowledgement, and normal/mouse standalone defaults. Run and
+Save stayed disabled while offline. This does not close the sandboxed Store UI or
+physical hardware gates.
+
+The engine's captured reports for 95 printable ASCII characters and 12 native
+Turkish letters match Apple's Turkish-QWERTY-PC translation for three keyboard
+types. Those translation checks neither inject events nor change input sources.
+Physical focus/shortcut behavior, other layouts/OSes, actual SD/USB/BLE timing,
+first pairing and interruptions remain release gates requiring separate approval.
+
+## Historical 0.1.x / 0.2.0 Device Evidence
+
+The following is preserved history, not the current backend or current device
+state. The owner stopped the last live test; it was not a successful full-layout
+pass. Old app paths and results below must not be used as current instructions.
+
+### Original Live Hardware Record - 2026-11-01
 
 This records observed results only. It is not a completed release certification.
 
@@ -168,6 +314,60 @@ as a dead key. Correct plain letters and brackets do not certify the whole
 layout. Resolve or explicitly limit this combination before release, and test
 other targets/layouts separately. No system input-source setting was changed.
 
-The current preview is connected and idle with a short benign draft. No run is
-queued. USB/cable loss, sleep/power-cycle, first-pairing rejection, other OSes,
+At that checkpoint the preview was connected and idle with a short benign draft.
+It was later terminated at the owner's request, as recorded below.
+USB/cable loss, sleep/power-cycle, first-pairing rejection, other OSes,
 other layouts, near-maximum payloads and other cancellation stages remain open.
+
+## Turkish-Q correction - initial local checkpoint
+
+The stock mapping's mismatches were reproduced using Apple's installed
+`com.apple.keylayout.Turkish-QWERTY-PC` translation. The Mac now selects a distinct
+`tr-TR-mac.kl` built-in compatibility profile only for macOS/Turkish Q. This keeps
+the Windows/Linux stock asset and the other 27 layout choices unchanged.
+The new mapping corrects quote, less-than and pipe, avoids pending caret/tilde
+accents, and completes a grave with Space before processing the next character.
+
+- All 30 Swift tests pass, including target-specific layout acknowledgement and
+  preservation of literal text and saved layout identifiers.
+- The patched production sender passes in-memory and SD-path checks for all 95
+  printable characters, cancellation before/during a grave, failed presses,
+  missing-layout failure and switching back to US/SD layouts.
+- Its captured HID reports match Apple's translation for all 95 characters,
+  each followed by `a`, for keyboard types 40, 41 and this Mac's type 92.
+- The updated FAP compiles for official firmware 1.5.1/API 88.2. SHA-256:
+  `43d79f730586617fb0b2dc1612c52d378744e2ba11c0fb9a9798c4b96fa9587a`.
+- The unsigned universal Mac archive validates. This is not Store signing or a
+  physical USB pass.
+
+At this initial checkpoint the updated FAP had not yet been installed. The
+full-ASCII capture and focused dead-key regressions must be repeated with the
+updated Mac preview and FAP before closing the layout release gate. No test input
+has been sent during this correction's local checks.
+
+## Corrected FAP installation and owner stop
+
+The owner later authorized installing the corrected `43d79f...` FAP above. The
+previous FAP was backed up and the full USB read-back matched the new local file.
+The updated preview completed the Bluetooth handshake. A reviewed full-ASCII
+attempt produced incomplete target text and the capture's final application/
+window focus indicators were false. The root cause of app switching/shortcuts
+was not established. The owner stopped the prepared repeat; the preview process
+was terminated, and no corrected live pass is claimed. Existing apps, pairing
+keys and the device firmware were preserved.
+
+## Unified 0.2.0 and native Turkish letters - local only
+
+The standard Mac build now exposes Quick Paste and the existing macro library
+together, using the same 28-layout catalog. The retained basic v2 implementation
+also accepts all 28 layout IDs and experimental Turkish UTF-8, gated against
+older Flipper builds. The default Ducker path instead compiles native letters to
+`[TR:XXXX]` tags and requires `CAPS:TURKISH` from the updated compatibility FAP.
+
+Host tests cover all 12 native Turkish letters, malformed input, old-peer
+rejection, escaping, capacity expansion, in-memory/SD typing, layout reset and
+interruption. Captured reports match Apple's Turkish-QWERTY-PC translation for
+all 95 printable ASCII and 12 Turkish letters on three keyboard types. These
+checks do not inject events or change the selected input source. No new FAP is
+installed and no live keystrokes are sent as part of this work. The failed/
+interrupted live test and all other physical release gates remain open.
