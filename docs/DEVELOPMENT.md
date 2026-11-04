@@ -1,6 +1,6 @@
 # Development and Release
 
-Version 0.5.2 is an independent Mac/Flipper pair. There is no vendor submodule or
+Version 0.5.3 is an independent Mac/Flipper pair. There is no vendor submodule or
 third-party typing backend. Keep the running app and connected device untouched
 unless installation or live testing is separately requested.
 
@@ -49,16 +49,16 @@ launch is unchanged. Host-rendered screen previews are also available with
 `scripts/render_catalog_screens.py` and official firmware 1.5.1 source; those
 previews go to ignored `dist/catalog-preview`, never over genuine screenshots.
 
-## Package 0.5.2
+## Package 0.5.3
 
 ```sh
-scripts/package_release.sh 0.5.2
+scripts/package_release.sh 0.5.3
 ```
 
 The version must match `VERSION`; the script rejects rebuilding older versions.
 It checks the built FAP's source fingerprints, builds a universal Mac app, uses
 `ditto` for the ZIP, includes both corresponding source archives, README, NOTICE,
-LICENSE, fingerprints and checksums under `dist/v0.5.2`. Source archives snapshot
+LICENSE, fingerprints and checksums under `dist/v0.5.3`. Source archives snapshot
 the allowlisted current working tree, including local development changes,
 while excluding build products, private keys and local account configuration.
 
@@ -67,11 +67,12 @@ or notarization. No packaging command publishes, submits to Apple, installs the
 apps or changes the user's running processes/device.
 
 For an authorized signed release, configure Developer ID locally, use
-`scripts/notarize_release.sh 0.5.2` deliberately, then staple/verify and generate
+`scripts/notarize_release.sh 0.5.3` deliberately, then staple/verify and generate
 the Homebrew cask from the final ZIP. Never rerun a rebuild/resubmit script to
 resume a pending notarization. Never export signing keys or put credentials in
 CI, shell arguments, source or chat. The old 0.1.1 submission/artifacts are not
-part of the 0.5.2 release and must remain unchanged.
+part of the 0.5.3 release and must remain unchanged. Public 0.5.2 assets are also
+immutable; a patch release uses a new tag and matching asset set.
 
 ## Companion Metadata
 

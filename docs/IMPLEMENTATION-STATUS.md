@@ -1,4 +1,19 @@
-# 0.5.2 Implementation Status
+# 0.5.3 Implementation Status
+
+0.5.3 fixes the application-data root's trailing slash in snapshot saving and
+large-transfer SD initialization. A read-only check on the owner's Flipper
+confirmed that the slash-suffixed path is invalid despite about 59 GiB free
+and no saved snapshots. The host filesystem stub now reproduces the firmware
+restriction; the old code fails and the fix passes. Mac save failures retain
+their save context and no longer claim a USB run was rejected.
+
+All 44 Swift tests, sanitizer-enabled C checks, cross-language fixtures and
+the target-7/API-88.2 FAP build pass. Snapshot format, slot limit, macro behavior
+and pairing keys are unchanged. Installation, notarization and public release
+are separate steps; use the exact artifact receipts for their current state.
+No physical typing, mouse output or save/run test is claimed for this patch.
+
+## Previous 0.5.2 Checkpoint
 
 0.5.2 adds Info & Companions, guarded version-pinned downloads, read-only device
 version reporting and an on-device About/release QR screen. It preserves the

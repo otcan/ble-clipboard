@@ -2,7 +2,7 @@
   <img src="BLEClipboardMac/Resources/AppIcon.png" width="100" alt="BLE Clipboard icon">
 </p>
 
-<h1 align="center">BLE Clipboard 0.5.2</h1>
+<h1 align="center">BLE Clipboard 0.5.3</h1>
 
 An independent Mac and Flipper Zero clipboard and macro pair. No Ducker runtime,
 source, protocol, submodule or build dependency is used in this version.
@@ -12,7 +12,7 @@ Mac app -- authenticated Bluetooth LE --> Flipper app -- USB keyboard --> Target
 ```
 
 **Early 0.x release.** Update both apps together using the matching
-[0.5.2 release](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.2).
+[0.5.3 release](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3).
 Automated checks pass, but fresh focus/shortcut, wider layout and multi-hour
 hardware validation remain open. Use only on devices you own or are authorized
 to operate. Building does not install an app or start input output.
@@ -50,10 +50,10 @@ No Git submodule setup is needed.
 swift test --package-path BLEClipboardMac
 sh scripts/check_clipboard.sh
 UFBT=ufbt sh scripts/build_flipper.sh
-scripts/package_release.sh 0.5.2
+scripts/package_release.sh 0.5.3
 ```
 
-The package directory is `dist/v0.5.2/`, including the universal ZIP,
+The package directory is `dist/v0.5.3/`, including the universal ZIP,
 `ble_clipboard.fap`, corresponding source, notices and `SHA256SUMS.txt`.
 The unpacked development Mac app is `BLEClipboardMac/dist/BLE Clipboard.app`.
 The default signature is ad-hoc; Developer ID signing/notarization and publication
@@ -80,12 +80,16 @@ For an existing installation, quit the app, then use `brew update` followed by
 `brew upgrade --cask otcan/ble-clipboard/ble-clipboard`. The Flipper companion is
 installed separately; Homebrew does not change device firmware or saved jobs.
 
-Use the matching 0.5.2 pair. Existing 0.5.x protocol peers and saved jobs remain
+Use the matching 0.5.3 pair. Existing 0.5.x protocol peers and saved jobs remain
 compatible; older companions show Unknown app version in Info. The mouse-button
 safety fix requires at least the 0.5.1 Flipper binary. Older
 companion apps use different services and cannot run this protocol. No device
 firmware change or pairing-key deletion is required. This repository's scripts
 do not perform installation.
+
+0.5.3 fixes SD initialization for saving snapshots and programs larger than
+4 KiB. The earlier SD-space/20-slot message could indicate an invalid folder
+path even with an empty library. No snapshot migration or SD formatting is needed.
 
 ## Use
 
@@ -203,7 +207,7 @@ verified through the read-only `--info` launch path; camera scanning remains ope
 
 The historical 0.1.0 release was clipboard-only, ad-hoc signed and unnotarized,
 with a 3,071-byte ASCII limit and US/Turkish-Q layouts. Those assets are unchanged;
-they are not the 0.5.2 macro app. See the changelog for the preserved history.
+they are not the 0.5.3 macro app. See the changelog for the preserved history.
 
 ## License
 

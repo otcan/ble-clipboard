@@ -76,6 +76,13 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
         }
     }
 
+    static func rejectionStatus(_ error: String, saving: Bool) -> String {
+        if saving {
+            return "Flipper could not save the snapshot: \(error). No USB output was started."
+        }
+        return "Flipper rejected the run: \(error). Check the target before retrying."
+    }
+
     private func startScan() {
         guard let central, central.state == .poweredOn, wantsScan else { return }
         candidates = []
@@ -247,8 +254,8 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
                 standaloneActive = false; remainingSeconds = 0
                 progress = cancelled ? progress : 1
                 status = cancelled ? "Cancelled; some input may already have been typed" : "USB output complete"
-            case .failed(let error):
-                fail("Flipper rejected the run: \(error). Check the target before retrying.")
+            case .failed(let error, let saving):
+                fail(Self.rejectionStatus(error, saving: saving))
             }
         }
     }

@@ -1,6 +1,6 @@
 # Security
 
-BLE Clipboard 0.5.2 turns explicit macro steps into USB keyboard/mouse events. Use it only on devices you
+BLE Clipboard 0.5.3 turns explicit macro steps into USB keyboard/mouse events. Use it only on devices you
 own or are authorized to operate. Newlines and tabs have normal key behavior.
 
 ## Trust Model

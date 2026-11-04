@@ -1,6 +1,31 @@
 # Hardware Validation
 
-## Current 0.5.2 - Companion Info and Installation
+## Current 0.5.3 - SD Path Fix
+
+On 2026-11-04, read-only USB CLI checks found about 59 GiB free and no saved
+snapshot directory. The existing app-data directory resolves without a trailing
+slash; the same path with a trailing slash reports invalid name/path. No files,
+pairing keys, snapshots or firmware were changed by those diagnostics.
+
+The host storage stub now models this firmware restriction. The saved-library
+test fails on the original root path and passes after using the unsuffixed
+application-data prefix. Both the snapshot and large-transfer initialization
+sites are fixed. All 44 Mac tests, sanitizer-enabled C suites, Swift-to-C fixtures,
+keyboard translation checks and the target-7/API-88.2 FAP build pass.
+Save failures are now identified as saves before resetting the Mac job state.
+
+These checks are not a physical save/run, keyboard/mouse test or multi-hour soak.
+Installation/publication receipts must be checked separately; earlier 0.5.2
+screenshots and notarization do not certify a different 0.5.3 binary.
+
+Genuine qFlipper 1.3.3 Info/Downloads exports were refreshed on 2026-11-04 from
+a temporary 0.5.3 FAP launched only with --info. They are copied byte-for-byte,
+512x256 with exactly the required orange/black palette. The exported QR decodes
+to the exact v0.5.3 release URL. Info, OK to QR and Back/exit were checked without
+Bluetooth/HID/library setup. The loader was idle after capture and the installed
+0.5.2 FAP still matched its pre-capture checksum. No normal app run is claimed.
+
+## Previous 0.5.2 - Companion Info and Installation
 
 All 42 Swift tests pass, including exact-version asset validation, draft/missing/
 incomplete/offline release states, anonymous pinned requests through a URLSession

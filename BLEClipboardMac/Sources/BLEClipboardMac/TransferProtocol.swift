@@ -81,7 +81,7 @@ struct TransferSession {
     enum Stage: Equatable { case idle, beginning, receiving, committing, saving, waitingUSB, executing, cancelling }
     enum Event: Equatable {
         case write(Data), ready(Int, String), accepted, progress(Double), waitingUSB
-        case done(cancelled: Bool), failed(String)
+        case done(cancelled: Bool), failed(String, saving: Bool)
         case saved, resumed, timer(elapsed: UInt32, remaining: UInt32), companionInfo(CompanionInfo)
     }
     private(set) var capacity = 0
@@ -186,8 +186,9 @@ struct TransferSession {
             let code = try reader.byte()
             guard id == 0 || id == jobID else { return [] }
             let message = String(data: try reader.data(reader.remaining), encoding: .utf8) ?? "Device error \(code)"
+            let saving = isSaving
             resetJob()
-            return [.failed(message)]
+            return [.failed(message, saving: saving)]
         }
         guard stage != .idle, id == jobID else { return [] }
         switch frame.command {

@@ -129,7 +129,7 @@ final class TransferProtocolTests: XCTestCase {
         _ = try session.receive(ack(macro.bytes)); _ = try session.receive(reply(.verified))
         var progress = id(); progress.appendLE(UInt32(macro.bytes + 1)); progress.appendLE(UInt32(macro.bytes))
         XCTAssertThrowsError(try session.receive(reply(.progress, progress)))
-        XCTAssertEqual(try session.receive(reply(.error, id() + Data([6]) + Data("Unsupported text".utf8))), [.failed("Unsupported text")])
+        XCTAssertEqual(try session.receive(reply(.error, id() + Data([6]) + Data("Unsupported text".utf8))), [.failed("Unsupported text", saving: false)])
         XCTAssertEqual(session.stage, .idle)
     }
 

@@ -1,7 +1,7 @@
-# BLE Clipboard 0.5.2 for macOS
+# BLE Clipboard 0.5.3 for macOS
 
 One native Mac app contains Quick Paste and the existing macro library. Its
-companion is the independent **BLE Clipboard 0.5.2** Flipper app under
+companion is the independent **BLE Clipboard 0.5.3** Flipper app under
 **Apps > Bluetooth**. Both apps must match; no third-party typing engine is used.
 
 Build with `./build_app.sh --universal`; output is `dist/BLE Clipboard.app`.

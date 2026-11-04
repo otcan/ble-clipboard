@@ -39,7 +39,12 @@ bool storage_dir_read(File* file, FileInfo* info, char* name, uint16_t size) {
     snprintf(name, size, "%s", entry->d_name); return true;
 }
 bool storage_simply_remove(Storage* storage, const char* path) { (void)storage; return unlink(path) == 0 || errno == ENOENT; }
-bool storage_simply_mkdir(Storage* storage, const char* path) { return mkdir(path, 0700) == 0 || (errno == EEXIST && storage_dir_exists(storage, path)); }
+bool storage_simply_mkdir(Storage* storage, const char* path) {
+    // FatFs rejects trailing separators, unlike the host's POSIX filesystem.
+    size_t length = strlen(path);
+    if(!length || path[length - 1] == '/') return false;
+    return mkdir(path, 0700) == 0 || (errno == EEXIST && storage_dir_exists(storage, path));
+}
 FS_Error storage_common_rename(Storage* storage, const char* from, const char* to) {
     storage->rename_count++;
     if(storage->fail_rename == storage->rename_count || access(to, F_OK) == 0) return FSE_INTERNAL;
@@ -80,11 +85,13 @@ static void assert_loaded(ClipboardLibrary* library, const ClipboardSaved* saved
 
 int main(void) {
     Storage storage = {0}; ClipboardLibrary library = {.storage = &storage};
+    assert(!storage_simply_mkdir(&storage, APP_DATA_PATH("")));
     clipboard_library_refresh(&library); assert(library.count == 0 && storage.allocations == 0);
     memcpy(data, "BCM4\1\0\1\3\0\0\0old", 14);
     ClipboardReader reader = {data, 14, read_memory};
     ClipboardSaved old = metadata(1, reader.size);
     assert(clipboard_library_save(&library, &old, &reader) && library.count == 1);
+    assert(storage_dir_exists(&storage, STORAGE_APP_DATA_PATH_PREFIX));
     uint8_t original[14]; memcpy(original, data, sizeof(original));
     assert_loaded(&library, &old, original);
     char final[128], backup[128], temporary[128]; paths(&old, final, backup, temporary);

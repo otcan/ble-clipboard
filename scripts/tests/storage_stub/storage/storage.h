@@ -3,7 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define APP_DATA_PATH(path) "library/" path
+#define STORAGE_APP_DATA_PATH_PREFIX "library"
+#define APP_DATA_PATH(path) STORAGE_APP_DATA_PATH_PREFIX "/" path
 typedef struct {
     unsigned rename_count, fail_rename;
     bool fail_write, fail_sync;

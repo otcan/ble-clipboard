@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.3 - 2026-11-04
+
+- Fix Flipper SD directory initialization: use the application-data root without
+  a trailing slash, which the firmware filesystem rejects. This restores saved
+  snapshots and temporary storage for transfers larger than 4 KiB.
+- Reproduce the firmware path restriction in saved-library regression tests.
+- Report Mac save failures as failed snapshots, not rejected USB runs; retain
+  the save context before the transfer session resets.
+- No snapshot-format change, slot-limit change or automatic app replacement.
+
 ## 0.5.2 - 2026-11-03
 
 - First independent public release, combining the clipboard, macro, 28-layout,

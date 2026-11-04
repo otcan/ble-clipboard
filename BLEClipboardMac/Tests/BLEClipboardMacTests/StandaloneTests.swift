@@ -74,6 +74,32 @@ final class StandaloneTests: XCTestCase {
         XCTAssertThrowsError(try session.receive(helper.reply(.active, active)))
     }
 
+    func testSaveErrorsPreserveTheirContextBeforeResettingTheJob() throws {
+        let macro = try helper.plan()
+        let message = "Save failed; check SD space or the 20-slot limit"
+        for phase in 0...3 {
+            var session = TransferSession()
+            _ = try session.receive(helper.ready())
+            _ = try session.begin(macro, jobID: 7, saved: .init(id: UUID(), name: "Snapshot"))
+            if phase >= 1 { _ = try session.receive(helper.reply(.begun)) }
+            if phase >= 2 { _ = try session.receive(helper.ack(macro.bytes)) }
+            if phase >= 3 { _ = try session.receive(helper.reply(.verified)) }
+            XCTAssertTrue(session.isSaving)
+            let events = try session.receive(helper.reply(.error, helper.id() + Data([4]) + Data(message.utf8)))
+            XCTAssertEqual(events, [.failed(message, saving: true)])
+            XCTAssertEqual(session.stage, .idle)
+            XCTAssertFalse(session.isSaving)
+            XCTAssertNoThrow(try session.begin(macro, jobID: 8))
+        }
+    }
+
+    func testSaveRejectionsDoNotClaimThatUSBOutputRan() {
+        XCTAssertEqual(ClipboardBluetooth.rejectionStatus("SD failure", saving: true),
+                       "Flipper could not save the snapshot: SD failure. No USB output was started.")
+        XCTAssertEqual(ClipboardBluetooth.rejectionStatus("USB failure", saving: false),
+                       "Flipper rejected the run: USB failure. Check the target before retrying.")
+    }
+
     func testLabelsAndIdentifiersAreValidatedBeforeAnyTransfer() throws {
         for name in ["", "\n", "bad\tname", String(repeating: "x", count: 80)] {
             var session = TransferSession(); _ = try session.receive(helper.ready())
