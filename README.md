@@ -7,10 +7,10 @@
 <p align="center">Your Mac's clipboard and macros, delivered through Flipper Zero.</p>
 
 <p align="center">
-  <a href="#install-the-matching-pair">Download &amp; Install</a> &middot;
-  <a href="#use">Quick Start</a> &middot;
-  <a href="docs/MACROS.md">Macro Guide</a> &middot;
-  <a href="CHANGELOG.md">Changelog</a>
+  <a href="https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/BLE-Clipboard-0.5.3-universal.zip">Download Mac App</a> &middot;
+  <a href="https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/ble_clipboard.fap">Download Flipper App</a> &middot;
+  <a href="#install-the-matching-pair">Setup Guide</a> &middot;
+  <a href="#screenshots">Screenshots</a>
 </p>
 
 Review text or create a macro on your Mac, then send it over Bluetooth LE to
@@ -24,57 +24,71 @@ Mac app -- Bluetooth LE --> Flipper Zero -- USB keyboard/mouse --> Target
 Free and open source under GPL-3.0-only. The current release is
 [0.5.3](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3).
 
-## Features
-
-| Feature | What you can do |
-| --- | --- |
-| Quick Paste | Load clipboard text or import a text file, review it, then send it as USB keystrokes. |
-| Macros | Combine text, templates, parameters, keyboard shortcuts, delays, mouse movement and timed repeats. Import and export your library as JSON. |
-| Saved jobs | Keep up to 20 clipboard or macro snapshots on the Flipper's SD card and run them without the Mac. |
-| Standalone runs | Continue selected jobs without the Mac, with a timer and physical Stop. Timed repeats support up to 24 hours. |
-| Target layouts | Choose from 28 keyboard layouts for both Quick Paste and macros. See [text support and layout requirements](#layouts-and-text). |
-
 ## Install the Matching Pair
 
 Install **both apps from the same release**. The Mac app creates and sends jobs;
 the Flipper app runs them over USB.
 
-| App | Requirements | Download 0.5.3 |
-| --- | --- | --- |
-| Mac | macOS 14 Sonoma or later; Apple Silicon or Intel | [Universal Mac ZIP](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/BLE-Clipboard-0.5.3-universal.zip) |
-| Flipper Zero | Packaged FAP targets official firmware 1.5.1 / API 88.2 | [ble_clipboard.fap](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/ble_clipboard.fap) |
+You need macOS 14 Sonoma or later (Apple Silicon or Intel), a Flipper Zero with
+a microSD card, and a USB data cable. The packaged FAP targets official firmware
+1.5.1 / API 88.2. No developer tools or custom firmware are needed.
 
-The published Mac app is **Developer ID signed, Apple-notarized and ticket-stapled**.
-Verify downloads against [SHA256SUMS.txt](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/SHA256SUMS.txt).
-No Gatekeeper bypass is needed.
+### 1. Mac App
 
-You will also need a USB data cable. An SD card is required for saved jobs,
-programs larger than 4 KiB and most keyboard layout files.
-
-### Mac
-
-Install through the [Homebrew tap](https://github.com/otcan/homebrew-ble-clipboard):
+With [Homebrew](https://brew.sh):
 
 ```sh
 brew tap otcan/ble-clipboard
 brew install --cask otcan/ble-clipboard/ble-clipboard
 ```
 
-Or download the Mac ZIP above, verify its checksum, unzip it and move
-**BLE Clipboard.app** to Applications. Quit an older copy before replacing it.
+Without Homebrew, [download the Mac app](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/BLE-Clipboard-0.5.3-universal.zip),
+unzip it and move **BLE Clipboard.app** to Applications. Quit an older copy
+before replacing it. The published Mac app is Developer ID signed,
+Apple-notarized and ticket-stapled.
 
 **Homebrew installs only the Mac app.** Install the Flipper companion separately.
 
-### Flipper Zero
+### 2. Flipper App
 
-1. Stop any running job and exit the Flipper app to its home screen so USB is
-   available to qFlipper.
-2. Connect the Flipper to your Mac by USB. Using qFlipper, copy the matching FAP
-   to `/ext/apps/Bluetooth/ble_clipboard.fap`. Preserve an older copy first if needed.
-3. Open **Apps > Bluetooth > BLE Clipboard** on the Flipper.
+First install **qFlipper**, the official desktop file manager for Flipper Zero:
+
+```sh
+brew install --cask qflipper
+```
+
+Or use the [official qFlipper download](https://flipper.net/pages/downloads).
+Already have qFlipper? Skip that step.
+
+1. [Download the Flipper app](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/ble_clipboard.fap).
+   Keep the filename `ble_clipboard.fap`; no extraction is needed.
+2. Stop any active job, exit to the Flipper's home screen and connect it to
+   your Mac with the USB data cable. Leave the microSD card inserted.
+3. Open qFlipper's **File Manager**, then **SD Card > apps > Bluetooth**.
+   Create the folders if needed, then drag the FAP into that folder or choose
+   **Upload here**. Preserve an older copy first if needed.
+4. On the Flipper, open **Apps > Bluetooth > BLE Clipboard**.
+
+The full device path is `/ext/apps/Bluetooth/ble_clipboard.fap`.
+You can close qFlipper after copying the file; it is not needed during use.
+See the [official file-upload guide](https://docs.flipper.net/zero/qflipper#how-to-upload-files-using-qflipper)
+if this is your first Flipper app.
+
+<details>
+<summary>No qFlipper? Install with a microSD card reader</summary>
+
+With the Flipper powered off, put its microSD card in a card reader and copy
+`ble_clipboard.fap` into `apps/Bluetooth/` on the card. Create the folders if
+needed. Eject the card, put it back in the Flipper and open
+**Apps > Bluetooth > BLE Clipboard** after turning it on.
+
+</details>
 
 The [Flipper Apps Catalog submission](https://github.com/flipperdevices/flipper-application-catalog/pull/1379)
 is awaiting maintainer review. Use the FAP download above until it is accepted.
+
+Both downloads and [SHA256SUMS.txt](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/SHA256SUMS.txt)
+are also available on the [0.5.3 release page](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3).
 
 ### Updating
 
@@ -107,6 +121,38 @@ the receiving document's focus. Focus restoration is not guaranteed.
 a job. Stop releases Flipper-held keys and mouse buttons but cannot undo input
 already sent. Tabs and newlines are real keys: start with a text document, not
 a terminal, password field or form that submits on Enter.
+
+## Features
+
+| Feature | What you can do |
+| --- | --- |
+| Quick Paste | Load clipboard text or import a text file, review it, then send it as USB keystrokes. |
+| Macros | Combine text, templates, parameters, keyboard shortcuts, delays, mouse movement and timed repeats. Import and export your library as JSON. |
+| Saved jobs | Keep up to 20 clipboard or macro snapshots on the Flipper's SD card and run them without the Mac. |
+| Standalone runs | Continue selected jobs without the Mac, with a timer and physical Stop. Timed repeats support up to 24 hours. |
+| Target layouts | Choose from 28 keyboard layouts for both Quick Paste and macros. See [text support and layout requirements](#layouts-and-text). |
+
+## Screenshots
+
+### Mac: Quick Paste
+
+<img src="docs/assets/mac-quick-paste.jpg" width="960" alt="BLE Clipboard 0.5.3 on Mac showing Quick Paste with a sample client setup checklist, target and layout controls, and Send to Flipper and Review &amp; Run actions">
+
+<details>
+<summary>Mac: Saved Macro Workspace</summary>
+
+<img src="docs/assets/mac-macros.jpg" width="960" alt="BLE Clipboard 0.5.3 macro workspace showing the built-in Fill Two Fields macro with two templates and a Tab key step">
+
+</details>
+
+### Flipper: Info and Companion Downloads
+
+<p>
+  <img src="BluetoothClipboard/screenshots/info.png" width="384" alt="BLE Clipboard 0.5.3 Info screen on Flipper Zero, showing app version, protocol and firmware API">
+  <img src="BluetoothClipboard/screenshots/downloads.png" width="384" alt="BLE Clipboard 0.5.3 companion download screen on Flipper Zero with the matching release QR code">
+</p>
+
+[Screenshot details](docs/ARTWORK.md#documentation-screenshots).
 
 ## Standalone Jobs and Mouse Jiggle
 
