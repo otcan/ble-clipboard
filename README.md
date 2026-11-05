@@ -134,14 +134,33 @@ a terminal, password field or form that submits on Enter.
 
 ## Screenshots
 
-### Mac: Quick Paste
+### Mac: Live Macro Run
 
-<img src="docs/assets/mac-quick-paste.jpg" width="960" alt="BLE Clipboard 0.5.3 on Mac showing Quick Paste with a sample client setup checklist, target and layout controls, and Send to Flipper and Review &amp; Run actions">
+<img src="docs/assets/mac-live-running.jpg" width="960" alt="BLE Clipboard 0.5.3 connected to a Flipper Zero and running README Demo, with text and delay steps, USB progress and Stop visible">
+
+A real 0.5.3 run through Flipper Zero, captured during the macro's final delay.
+
+### USB Target: Received Output
+
+<img src="docs/assets/usb-macro-output.jpg" width="760" alt="A temporary plain text receiver on the USB target Mac showing the complete demo text and 99 bytes received">
+
+The actual USB keystrokes received on the target Mac. All **99 bytes matched**
+the macro. This scratch receiver is only for the demo; targets need no app.
 
 <details>
-<summary>Mac: Saved Macro Workspace</summary>
+<summary>Completed run and more Mac screens</summary>
 
-<img src="docs/assets/mac-macros.jpg" width="960" alt="BLE Clipboard 0.5.3 macro workspace showing the built-in Fill Two Fields macro with two templates and a Tab key step">
+**The same run, completed**
+
+<img src="docs/assets/mac-live-complete.jpg" width="960" alt="The real README Demo run after completion, with BLE Clipboard reporting USB output complete">
+
+**Quick Paste (offline preview)**
+
+<img src="docs/assets/mac-quick-paste.jpg" width="960" alt="Offline BLE Clipboard 0.5.3 Quick Paste preview with a sample client setup checklist, target and layout controls, and review actions">
+
+**Saved macro workspace (offline preview)**
+
+<img src="docs/assets/mac-macros.jpg" width="960" alt="Offline BLE Clipboard 0.5.3 macro workspace showing the built-in Fill Two Fields macro with two templates and a Tab key step">
 
 </details>
 
@@ -191,6 +210,10 @@ US and macOS Turkish Q are built in. The Turkish map targets Apple's
 official `.kl` file under `/ext/badusb/assets/layouts/`. Missing or unmapped
 layout assets reject the job before it runs.
 
+On macOS Turkish Q, some characters use Option. Global shortcuts triggered by
+repeated modifier presses can interrupt typing; use a non-conflicting target
+shortcut. See [target shortcut compatibility](docs/HARDWARE-VALIDATION.md#target-shortcut-compatibility).
+
 <details>
 <summary>All 28 target layout choices</summary>
 
@@ -227,9 +250,10 @@ to an older version. Older companions may report their app version as Unknown.
 ## Status and Feedback
 
 This is an **early 0.x release**. Automated Swift and C checks cover macro
-compilation, protocol handling, layouts, storage and cancellation, but are not
-hardware certification. Fresh physical save/run, wider focus/layout and
-multi-hour target checks remain open; see the [validation record](docs/HARDWARE-VALIDATION.md).
+compilation, protocol handling, layouts, storage and cancellation. A real 0.5.3
+text-and-delay run passed with byte-for-byte USB output verification. Physical
+SD save/restart/run, wider focus/layout and multi-hour target checks remain open;
+see the [validation record](docs/HARDWARE-VALIDATION.md).
 
 Found a bug? [Open an issue](https://github.com/otcan/ble-clipboard/issues) with
 your Mac version, Flipper firmware, target OS/layout and non-sensitive steps

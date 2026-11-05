@@ -1,5 +1,71 @@
 # Hardware Validation
 
+## 0.5.3 - Live Text and Delay Run
+
+On 2026-11-05, with explicit owner approval, the installed 0.5.3 Mac and Flipper
+pair completed a real Bluetooth LE to USB run into a dedicated plain text
+receiver on the source Mac. Info & Companions reported matching 0.5.3 versions
+and API 88.2 / target 7. The target's existing Apple Turkish-QWERTY-PC input
+source was matched with macOS / Turkish Q; no input-source settings were changed.
+
+The temporary README Demo macro had three steps: a 10,000 ms delay, one literal
+text step and a 25,000 ms delay. Its exact output, including a final newline, was:
+
+```text
+usb macro demo
+
+source mac
+target usb text capture
+
+text, delays and repeat steps.
+
+demo complete.
+```
+
+The receiver recorded all 99 ASCII bytes, byte-for-byte equal to the macro text,
+with 99 new text changes. The local capture guard did not detect focus loss;
+the receipt at the end of typing reports active application, key window and text
+focus. Payload SHA-256:
+`366c3689ecfe6ae15cf278fe3885828709ee1acfbce3af6b5a8e99a3c1582a08`.
+The production Mac Turkish-Q table maps every character in this payload to a
+key with zero modifier bits. This is a deliberately limited text subset.
+
+The running-state screenshot was taken during the final delay, after all text
+had arrived and with no further HID input queued. The real sender subsequently
+reported USB output complete; total observed run time was about 39.1 seconds.
+The output screenshot shows the actual receiver text, not pasted or generated
+content. See [screenshot provenance](ARTWORK.md#live-run-and-usb-output).
+
+The temporary macro was deleted through the app UI, the original seven macros
+remained, and the scratch receiver was closed. The installed Mac app was left
+connected and idle. No existing macro was run or edited, no snapshot was saved,
+and no installed binary, firmware or pairing key was changed.
+
+This pass covers only live literal text, delays and completion for this payload.
+It does not validate the Repeat step mentioned in the sample text, native Turkish
+letters, all ASCII, other layouts, shortcuts, mouse behavior, physical SD
+save/restart/run or multi-hour stability.
+
+### Target Shortcut Compatibility
+
+Two earlier capture attempts were interrupted and are not passing tests. The
+first lost target focus after 20 correct bytes around a capture operation; its
+cause was not established. The second lost focus without a screenshot or sender
+inspection during typing, and left partial/corrupted output. Both were stopped
+by the local capture guard before the successful attempt, and the receiver was
+cleared.
+
+The earlier payload used `>` followed shortly by `i`. The production
+`keyboard_turkish_mac.h` maps those characters to Right Option combinations
+(`0x401e` and `0x400c`). Claude Desktop documents
+[double-tap Option as its default quick-entry shortcut](https://support.claude.com/en/articles/12626668-use-quick-entry-with-claude-desktop-on-mac),
+which can open from another app. This is a plausible conflict consistent with
+the owner's earlier report of Claude opening, not a proven sole cause: the
+foreground app identity and the owner's shortcut setting were not recorded.
+No Claude settings or system shortcuts were changed. On affected targets,
+choose a non-conflicting global shortcut before using Option-based characters.
+The successful modifier-free subset does not resolve or certify this case.
+
 ## Current 0.5.3 - SD Path Fix
 
 On 2026-11-04, read-only USB CLI checks found about 59 GiB free and no saved
@@ -23,7 +89,8 @@ a temporary 0.5.3 FAP launched only with --info. They are copied byte-for-byte,
 512x256 with exactly the required orange/black palette. The exported QR decodes
 to the exact v0.5.3 release URL. Info, OK to QR and Back/exit were checked without
 Bluetooth/HID/library setup. The loader was idle after capture and the installed
-0.5.2 FAP still matched its pre-capture checksum. No normal app run is claimed.
+0.5.2 FAP still matched its pre-capture checksum. No normal app run was performed
+during that Info capture.
 
 ## Previous 0.5.2 - Companion Info and Installation
 

@@ -26,6 +26,32 @@ native app rather than an image-generated UI mockup.
 
 ## Documentation Screenshots
 
+### Live Run and USB Output
+
+Captured on 2026-11-05 with the owner's permission, using the installed 0.5.3
+Mac and Flipper apps, not a preview or simulated connection:
+
+- `docs/assets/mac-live-running.jpg`: 2040x1440 native Mac window capture while
+  README Demo was running, during its final 25-second delay after all text had
+  reached the USB target. Progress and Stop are the real app state.
+- `docs/assets/mac-live-complete.jpg`: 2040x1440 capture of the same app after
+  it reported USB output complete.
+- `docs/assets/usb-macro-output.jpg`: 1400x866 capture of the actual 99-byte USB
+  output in a temporary native AppKit text receiver on the target Mac. This is
+  a scratch test tool, not a shipped companion or the Flipper screen. Its window
+  was resized before capture; the image was not cropped.
+
+The successful macro contained one literal-text step between two delays, with
+no shortcuts, mouse movement, clipboard access, templates or SD snapshot save.
+Received text matched byte-for-byte; see the
+[live validation record](HARDWARE-VALIDATION.md#053---live-text-and-delay-run)
+for scope and interrupted earlier attempts. The temporary macro was removed
+and the scratch receiver closed afterward, preserving the existing macros.
+All three JPEGs are original window captures without compositing, retouching,
+overlaid status or generated UI elements.
+
+### Offline Mac Previews
+
 `docs/assets/mac-quick-paste.jpg` and `docs/assets/mac-macros.jpg` are unedited
 2040x1440 captures of the native 0.5.3 Mac UI. They were captured from a separate
 copy of the released bundle with the isolated
@@ -36,6 +62,8 @@ load, connection, job execution or saved-job transfer was performed. The tempora
 app was closed after capture; the owner's installed app was not replaced or quit.
 The JPEG files are the original window captures, without cropping, compositing,
 retouching or generated UI elements.
+
+### Flipper Device Screens
 
 `BluetoothClipboard/screenshots/info.png` and `downloads.png` are the existing
 genuine 0.5.3 device screenshots exported by qFlipper. Their original PNG bytes
