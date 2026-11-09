@@ -13,6 +13,8 @@
 #include "clipboard_library.h"
 #include "clipboard_hid.h"
 #include "companion_version.h"
+#include "keyboard_menu.h"
+#include "keyboard_settings_store.h"
 
 #define KEYS_PATH APP_DATA_PATH(".ble_clipboard_usb.keys")
 #define JOB_PATH APP_DATA_PATH(".macro-v4.tmp")
@@ -36,8 +38,10 @@ typedef struct {
     ClipboardScreen screen;
     ClipboardLibrary library;
     size_t selected;
-    enum { LibraryList, LibraryDetail, LibraryConfirmRun, LibraryConfirmDelete, LibraryAbout, LibraryCompanions } page;
+    enum { LibraryList, LibraryDetail, LibraryConfirmRun, LibraryConfirmDelete, LibraryAbout, LibraryCompanions, LibraryKeyboard } page;
+    ClipboardKeyboardMenu keyboard_menu;
     char run_name[CLIPBOARD_SAVED_NAME];
+    uint32_t run_keyboard_revision;
     uint32_t outcome_until;
     char outcome[96];
     ClipboardServer server;
@@ -68,7 +72,8 @@ static void status_set(ClipboardApp* app, const char* text) {
     const char* newline = strchr(text, '\n');
     snprintf(screen.lines[0], sizeof(screen.lines[0]), "%.*s", newline ? (int)(newline - text) : (int)strlen(text), text);
     if(newline) snprintf(screen.lines[1], sizeof(screen.lines[1]), "%s", newline + 1);
-    snprintf(screen.left, sizeof(screen.left), "%s", app->server.state != ClipboardJobIdle ? "Stop" : "Exit");
+    snprintf(screen.left, sizeof(screen.left), "%s", app->server.state != ClipboardJobIdle ? "Stop" :
+        (!app->profile || !app->usb_started) ? "Exit" : app->page == LibraryList ? "Keyboard" : "Back");
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     bool changed = memcmp(&app->screen, &screen, sizeof(screen)) != 0;
     app->screen = screen;
@@ -237,6 +242,11 @@ static bool keyboard_release(void* context) {
     return !app->usb_started || clipboard_hid_release_all();
 }
 
+static bool save_keyboard(void* context, const ClipboardKeyboardSettings* settings) {
+    ClipboardApp* app = context;
+    return clipboard_keyboard_settings_save(app->storage, settings);
+}
+
 static bool profile_start(ClipboardApp* app) {
     bt_disconnect(app->bt);
     furi_delay_ms(200);
@@ -286,15 +296,19 @@ static void update_status(ClipboardApp* app, uint32_t now) {
     default:
         if((int32_t)(app->outcome_until - now) > 0) { status_set(app, app->outcome); return; }
         if(app->selected >= app->library.count) app->selected = app->library.count ? app->library.count - 1 : 0;
-        if(app->page == LibraryAbout || app->page == LibraryCompanions) {
+        if(app->page == LibraryKeyboard) {
+            clipboard_keyboard_menu_screen(&app->keyboard_menu, &screen);
+        } else if(app->page == LibraryAbout || app->page == LibraryCompanions) {
             clipboard_screen_info(&screen, app->page == LibraryCompanions);
         } else if(app->page == LibraryList || !app->library.count) {
             snprintf(screen.right, sizeof(screen.right), "Info");
+            snprintf(screen.left, sizeof(screen.left), "Keyboard");
             snprintf(screen.lines[0], sizeof(screen.lines[0]), "Saved %u/%u | %s", (unsigned)app->library.count,
                      (unsigned)CLIPBOARD_SAVED_LIMIT, app->server.authenticated ? "Mac" : "Offline");
             if(!app->library.count) {
                 snprintf(screen.lines[1], sizeof(screen.lines[1]), "Library empty");
-                snprintf(screen.lines[2], sizeof(screen.lines[2]), "Save to Flipper on Mac");
+                snprintf(screen.lines[2], sizeof(screen.lines[2]), "Keyboard: %s", clipboard_layout_titles[app->server.keyboard_settings.layout]);
+                snprintf(screen.lines[3], sizeof(screen.lines[3]), "Save jobs from Mac");
             } else {
                 size_t start = app->selected / 3 * 3;
                 for(size_t i = 0; i < 3 && start + i < app->library.count; i++) {
@@ -305,19 +319,23 @@ static void update_status(ClipboardApp* app, uint32_t now) {
             }
         } else {
             const ClipboardSaved* saved = &app->library.entries[app->selected];
+            const ClipboardKeyboardSettings* keyboard = &app->server.keyboard_settings;
+            ClipboardSaved effective = clipboard_saved_for_keyboard(saved, keyboard);
+            uint8_t layout = effective.layout, target = effective.target;
             snprintf(screen.lines[0], sizeof(screen.lines[0]), "%s", saved->name);
             snprintf(screen.left, sizeof(screen.left), "Back");
             if(app->page == LibraryConfirmRun || app->page == LibraryConfirmDelete) {
                 snprintf(screen.lines[1], sizeof(screen.lines[1]), "%s", app->page == LibraryConfirmRun ? "Confirm USB output" : "Delete from SD?");
-                snprintf(screen.lines[2], sizeof(screen.lines[2]), "%s", app->page == LibraryConfirmRun ? "Focus intended target" : "Cannot be undone");
-                snprintf(screen.lines[3], sizeof(screen.lines[3]), "%s", app->page == LibraryConfirmRun ? "3-second start allowance" : "Mac original is unchanged");
+                snprintf(screen.lines[2], sizeof(screen.lines[2]), "%s", app->page == LibraryConfirmRun ?
+                    (target != saved->target ? "Saved shortcuts unchanged" : "Focus intended target") : "Cannot be undone");
+                if(app->page == LibraryConfirmRun) {
+                    snprintf(screen.lines[3], sizeof(screen.lines[3]), "%s | %s", clipboard_target_titles[target], clipboard_layout_titles[layout]);
+                } else snprintf(screen.lines[3], sizeof(screen.lines[3]), "Mac original is unchanged");
                 snprintf(screen.center, sizeof(screen.center), "%s", app->page == LibraryConfirmRun ? "Run" : "Delete");
             } else {
-                static const char* const targets[] = {"macOS", "Windows", "Linux"};
-                snprintf(screen.lines[1], sizeof(screen.lines[1]), "%s | %s", targets[saved->target],
-                         saved->layout == 0 ? "English US" : clipboard_layout_files[saved->layout]);
+                snprintf(screen.lines[1], sizeof(screen.lines[1]), "%s | %s", clipboard_target_titles[target], clipboard_layout_titles[layout]);
                 snprintf(screen.lines[2], sizeof(screen.lines[2]), "%lu bytes", (unsigned long)saved->size);
-                snprintf(screen.lines[3], sizeof(screen.lines[3]), "Saved plaintext on SD");
+                snprintf(screen.lines[3], sizeof(screen.lines[3]), "%s", keyboard->override_saved ? "Device keyboard override" : "Original saved keyboard");
                 snprintf(screen.center, sizeof(screen.center), "Run");
                 snprintf(screen.right, sizeof(screen.right), "Delete");
             }
@@ -332,10 +350,17 @@ static void update_status(ClipboardApp* app, uint32_t now) {
 }
 
 static void local_run(ClipboardApp* app, uint32_t now) {
+    if(app->run_keyboard_revision != app->server.keyboard_settings.revision) {
+        snprintf(app->outcome, sizeof(app->outcome), "Keyboard changed\nReview before Run");
+        app->outcome_until = now + 2500; app->page = LibraryDetail;
+        return;
+    }
     ClipboardSaved saved = app->library.entries[app->selected];
     bool ok = usb_connected(app) && store_open(app, saved.size) &&
-              clipboard_library_load(&app->library, &saved, app, store_write) &&
-              clipboard_server_run_saved(&app->server, &saved, (now ^ clipboard_read_u32(saved.id)) | 1U, now);
+              clipboard_library_load(&app->library, &saved, app, store_write);
+    // Apply only to the in-memory run; the snapshot's header and checksum stay unchanged.
+    saved = clipboard_saved_for_keyboard(&saved, &app->server.keyboard_settings);
+    ok = ok && clipboard_server_run_saved(&app->server, &saved, (now ^ clipboard_read_u32(saved.id)) | 1U, now);
     if(ok) snprintf(app->run_name, sizeof(app->run_name), "%s", saved.name);
     else {
         store_close(app);
@@ -362,8 +387,9 @@ int32_t ble_clipboard_app(void* context) {
     view_port_draw_callback_set(app->view_port, draw, app);
     view_port_input_callback_set(app->view_port, input_callback, app);
     ClipboardServerIO io = {app, send_status, store_open, store_write, store_read, store_close,
-                            load_layout, usb_connected, keyboard_press, keyboard_release, mouse_move, save_program, random_value};
+                            load_layout, usb_connected, keyboard_press, keyboard_release, mouse_move, save_program, random_value, save_keyboard};
     clipboard_server_init(&app->server, io, furi_hal_version_get_name_ptr());
+    clipboard_keyboard_settings_load(app->storage, &app->server.keyboard_settings);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
     status_set(app, "Starting...\nIndependent protocol 4");
     storage_simply_remove(app->storage, JOB_PATH);
@@ -386,6 +412,25 @@ int32_t ble_clipboard_app(void* context) {
                     app->outcome_until = millis() + 1500;
                     app->page = LibraryList;
                 }
+            } else if(app->page == LibraryKeyboard) {
+                ClipboardKeyboardMenuAction action = clipboard_keyboard_menu_input(&app->keyboard_menu, event.key);
+                if(action == ClipboardKeyboardMenuBack) app->page = LibraryList;
+                else if(action == ClipboardKeyboardMenuSave) {
+                    ClipboardKeyboardResult result = clipboard_server_set_keyboard(&app->server, app->keyboard_menu.draft);
+                    if(result == ClipboardKeyboardOk) {
+                        clipboard_server_keyboard_changed(&app->server);
+                        app->page = LibraryList;
+                    } else {
+                        const char* message = result == ClipboardKeyboardConflict ? "Changed on Mac\nReopen Keyboard" :
+                            result == ClipboardKeyboardUnavailable ? "Layout unavailable\nCheck SD layout assets" : "Keyboard not saved\nCheck SD card";
+                        snprintf(app->outcome, sizeof(app->outcome), "%s", message);
+                        app->outcome_until = millis() + 2500;
+                        if(result == ClipboardKeyboardConflict) app->page = LibraryList;
+                    }
+                }
+            } else if(event.key == InputKeyLeft && app->page == LibraryList && app->profile && app->usb_started) {
+                clipboard_keyboard_menu_init(&app->keyboard_menu, app->server.keyboard_settings);
+                app->page = LibraryKeyboard;
             } else if(event.key == InputKeyBack || event.key == InputKeyLeft) {
                 if(app->page == LibraryList) running = false;
                 else if(app->page == LibraryCompanions) app->page = LibraryAbout;
@@ -401,7 +446,10 @@ int32_t ble_clipboard_app(void* context) {
             } else if(app->library.count && app->selected < app->library.count) {
                 if(event.key == InputKeyRight && app->page == LibraryDetail) app->page = LibraryConfirmDelete;
                 else if(event.key == InputKeyOk) {
-                    if(app->page == LibraryDetail) app->page = LibraryConfirmRun;
+                    if(app->page == LibraryDetail) {
+                        app->run_keyboard_revision = app->server.keyboard_settings.revision;
+                        app->page = LibraryConfirmRun;
+                    }
                     else if(app->page == LibraryConfirmRun) local_run(app, millis());
                     else if(app->page == LibraryConfirmDelete) {
                         bool ok = clipboard_library_remove(&app->library, &app->library.entries[app->selected]);

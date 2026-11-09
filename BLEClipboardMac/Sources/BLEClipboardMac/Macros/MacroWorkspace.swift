@@ -22,8 +22,8 @@ struct MacroWorkspace: View {
     @State private var selection: UUID?
     @State private var search = ""
     @State private var quickText = ""
-    @State private var quickTarget = TargetSystem.macOS
-    @State private var quickLayout = MacroLayout.us
+    private var quickTarget: TargetSystem { bluetooth.keyboardSettings.target }
+    private var quickLayout: MacroLayout { bluetooth.keyboardSettings.layout }
     @State private var editing: SavedMacro?
     @State private var reviewing: MacroReviewRequest?
     @State private var deleting: SavedMacro?
@@ -33,6 +33,7 @@ struct MacroWorkspace: View {
     @State private var exportFile = MacroJSONFile(data: Data())
     @State private var error: String?
     @State private var showingInfo = false
+    @State private var showingKeyboard = false
 
     private var selected: SavedMacro? { library.macros.first { $0.id == selection } }
     private var visible: [SavedMacro] { library.macros.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) } }
@@ -61,9 +62,14 @@ struct MacroWorkspace: View {
                 .searchable(text: $search, placement: .sidebar)
                 Divider()
                 HStack {
-                    icon("New Macro", "plus") { editing = SavedMacro(name: "New Macro", steps: [.init(.text)]) }
+                    icon("New Macro", "plus") {
+                        editing = SavedMacro(name: "New Macro", target: quickTarget, layout: quickLayout, steps: [.init(.text)])
+                    }
                         .accessibilityIdentifier("new-macro")
-                    icon("New Mouse Jiggle Macro", "computermouse") { editing = SavedMacro.mouseJiggler() }
+                    icon("New Mouse Jiggle Macro", "computermouse") {
+                        var macro = SavedMacro.mouseJiggler(); macro.layout = quickLayout; macro.target = quickTarget
+                        editing = macro
+                    }
                         .accessibilityIdentifier("new-mouse-jiggle")
                     Spacer()
                     icon("Import Macros", "square.and.arrow.down") { importingText = false; importing = true }
@@ -111,12 +117,16 @@ struct MacroWorkspace: View {
         }
         .tint(.teal)
         .toolbar {
+            Button { showingKeyboard = true } label: { Image(systemName: "keyboard") }
+                .help("Flipper Keyboard: \(quickLayout.title)").accessibilityLabel("Flipper Keyboard")
+                .accessibilityIdentifier("flipper-keyboard")
             Button { showingInfo = true } label: { Image(systemName: "info.circle") }
                 .help("Info & Companions").accessibilityLabel("Info & Companions")
                 .accessibilityIdentifier("info-companions")
         }
         .onReceive(NotificationCenter.default.publisher(for: .showCompanionInfo)) { _ in showingInfo = true }
         .sheet(isPresented: $showingInfo) { CompanionInfoView(bluetooth: bluetooth) }
+        .sheet(isPresented: $showingKeyboard) { KeyboardSettingsView(bluetooth: bluetooth) }
         .sheet(item: $editing) { macro in
             MacroEditor(initial: macro) { changed in try library.save(changed); selection = changed.id }
         }
@@ -194,14 +204,14 @@ struct MacroWorkspace: View {
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(nsColor: .separatorColor)))
                 .accessibilityLabel("Text to Type")
             HStack {
-                Picker("Target", selection: $quickTarget) {
+                Picker("Target", selection: Binding(get: { quickTarget }, set: { bluetooth.changeKeyboard(target: $0) })) {
                     ForEach(TargetSystem.allCases) { Text($0.rawValue).tag($0) }
                 }.frame(maxWidth: 220)
-                Picker("Layout", selection: $quickLayout) {
+                Picker("Layout", selection: Binding(get: { quickLayout }, set: { bluetooth.changeKeyboard(layout: $0) })) {
                     ForEach(MacroLayout.allCases) { Text($0.title).tag($0) }
                 }.frame(minWidth: 230, idealWidth: 250, maxWidth: 300)
                 Spacer()
-            }
+            }.disabled(!bluetooth.canChangeKeyboard)
             HStack {
                 Text("\(quickText.utf8.count.formatted()) bytes").font(.caption).foregroundStyle(.secondary)
                 Spacer()
@@ -485,6 +495,9 @@ private struct MacroRunReview: View {
     @State private var destination: TransferDestination
     @State private var standalone: Bool
     @State private var storedName: String
+    @AppStorage("typingMode") private var typingMode = 0
+    @AppStorage("typingPauseMilliseconds") private var typingPause = 80
+    @AppStorage("typingVariationMilliseconds") private var typingVariation = 30
 
     init(macro: SavedMacro, bluetooth: ClipboardBluetooth, destination: TransferDestination = .run) {
         self.macro = macro
@@ -500,7 +513,8 @@ private struct MacroRunReview: View {
 
     private var compiled: Result<CompiledMacro, Error> {
         Result { try MacroCompiler.compile(macro, context: .init(clipboard: clipboard, date: date, parameters: values),
-                                          limit: bluetooth.capacity > 0 ? bluetooth.capacity : MacroCompiler.maximumBytes) }
+                                          limit: bluetooth.capacity > 0 ? bluetooth.capacity : MacroCompiler.maximumBytes,
+                                          timing: .selected(mode: typingMode, pause: typingPause, variation: typingVariation)) }
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -510,6 +524,13 @@ private struct MacroRunReview: View {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             LabeledContent("USB Target", value: "\(macro.target.rawValue) / \(macro.layout.title)")
+            TypingTimingControls(mode: $typingMode, pause: $typingPause, variation: $typingVariation)
+                .onChange(of: typingMode) { _, _ in confirmed = false }
+                .onChange(of: typingPause) { _, _ in confirmed = false }
+                .onChange(of: typingVariation) { _, _ in confirmed = false }
+            if destination == .save && bluetooth.keyboardSettings.useForSavedRuns && bluetooth.keyboardHasSynced {
+                LabeledContent("Flipper Local Runs", value: "\(bluetooth.keyboardSettings.target.rawValue) / \(bluetooth.keyboardSettings.layout.title)")
+            }
             LabeledContent("Flipper", value: bluetooth.isReady ? bluetooth.deviceName : "Not connected")
             Picker("Destination", selection: $destination) {
                 ForEach(TransferDestination.allCases) { Text($0.rawValue).tag($0) }
@@ -545,6 +566,8 @@ private struct MacroRunReview: View {
                 Toggle("Continue on Flipper if this Mac disconnects", isOn: $standalone)
                 Toggle("Hide this app before output", isOn: $hideBeforeOutput)
             }
+            Text("Match the target keyboard. Global shortcuts can intercept keys; hiding this app does not restore target focus.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Label(destination == .save ? "Clipboard, time and parameters are fixed at send time; no USB output now" :
                       standalone ? "Continues after Mac closes; physical Stop remains available" : "Line breaks send Enter; output cannot be undone", systemImage: "exclamationmark.triangle")
@@ -561,10 +584,17 @@ private struct MacroRunReview: View {
                     .disabled(!canRun)
                     .accessibilityIdentifier("run-confirmed")
             }
-        }.padding(24).frame(width: 650, height: 650)
+        }.padding(24).frame(width: 650, height: 720)
+            .onChange(of: values) { _, _ in confirmed = false }
+            .onChange(of: storedName) { _, _ in confirmed = false }
+            .onChange(of: standalone) { _, _ in confirmed = false }
+            .onChange(of: hideBeforeOutput) { _, _ in confirmed = false }
+            .onChange(of: bluetooth.isReady) { _, _ in confirmed = false }
+            .onChange(of: bluetooth.deviceName) { _, _ in confirmed = false }
+            .onChange(of: bluetooth.keyboardSettings) { _, _ in confirmed = false }
     }
     private var canRun: Bool {
-        guard confirmed, bluetooth.isReady, !bluetooth.isBusy, case .success = compiled else { return false }
+        guard confirmed, bluetooth.canTransfer, case .success = compiled else { return false }
         if destination == .save { return (try? SavedProgramRequest(id: macro.id, name: storedName).payload(jobID: 1)) != nil }
         return true
     }

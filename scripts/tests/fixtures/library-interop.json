@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 3,
+  "macros": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001", "name": "Normalized Turkish",
+      "target": "macOS", "layout": "tr-TR.kl", "updatedAt": 721692800, "parameters": [],
+      "steps": [{"id": "20000000-0000-4000-8000-000000000001", "kind": "text", "value": "I\u0307\r\ns\u0327", "milliseconds": 250}]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002", "name": "Windows fields",
+      "target": "windows", "layout": "QWERTY US", "updatedAt": 721692800,
+      "parameters": [{"id": "name", "label": "Name"}],
+      "steps": [
+        {"id": "20000000-0000-4000-8000-000000000002", "kind": "chord", "value": "PRIMARY+A", "milliseconds": 250},
+        {"id": "20000000-0000-4000-8000-000000000003", "kind": "template", "value": "{{name}}\t{{clipboard}}\n{{timestamp}}", "milliseconds": 250},
+        {"id": "20000000-0000-4000-8000-000000000004", "kind": "delay", "value": "", "milliseconds": 25}
+      ]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003", "name": "Mac shortcuts",
+      "target": "macOS", "layout": "QWERTY US", "updatedAt": 721692800, "parameters": [],
+      "steps": [
+        {"id": "20000000-0000-4000-8000-000000000005", "kind": "chord", "value": "PRIMARY+SHIFT+F12", "milliseconds": 250},
+        {"id": "20000000-0000-4000-8000-000000000006", "kind": "text", "value": "[ENTER] {{clipboard}}", "milliseconds": 250}
+      ]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004", "name": "Linux repeat",
+      "target": "linux", "layout": "de-DE.kl", "updatedAt": 721692800, "parameters": [],
+      "steps": [
+        {"id": "20000000-0000-4000-8000-000000000007", "kind": "repeatFor", "value": "", "milliseconds": 250,
+         "mouseDurationSeconds": 2, "mouseIntervalSeconds": 1, "mouseIntervalMaximumSeconds": 2, "varyingInterval": true,
+         "children": [
+           {"id": "20000000-0000-4000-8000-000000000008", "kind": "moveMouse", "value": "", "milliseconds": 250,
+            "mouseXMinimum": -2, "mouseXMaximum": 2, "mouseYMinimum": 0, "mouseYMaximum": 1, "varyingMouse": true},
+           {"id": "20000000-0000-4000-8000-000000000009", "kind": "chord", "value": "PRIMARY+TAB", "milliseconds": 250}
+         ]}
+      ]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000005", "name": "Legacy movement",
+      "target": "windows", "layout": "QWERTY US", "updatedAt": 721692800, "parameters": [],
+      "steps": [{"id": "20000000-0000-4000-8000-000000000010", "kind": "mouseJiggle", "value": "", "milliseconds": 250,
+                 "mouseDurationSeconds": 2, "mouseIntervalSeconds": 1}]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ indirect enum MacroOperation: Equatable {
     case text(String)
     case key(modifiers: UInt8, code: UInt16)
     case delay(UInt32)
+    case typingTiming(TypingTiming)
     case mouseJiggle(duration: UInt32, interval: UInt32)
     case moveMouse(xMin: Int8, xMax: Int8, yMin: Int8, yMax: Int8)
     case repeatFor(duration: UInt32, intervalMin: UInt32, intervalMax: UInt32, body: [MacroOperation])
@@ -82,10 +83,17 @@ enum MacroProgram {
         guard !operations.isEmpty, operations.count <= 128 else { throw MacroError.invalid("A program needs 1-128 operations.") }
         var result = Data()
         var hasOutput = false
-        for operation in operations {
+        for (index, operation) in operations.enumerated() {
             budget.nodes += 1
             guard budget.nodes <= 512 else { throw MacroError.invalid("A program permits at most 512 total operations.") }
             switch operation {
+            case .typingTiming(let timing):
+                guard !inRepeat, index == 0, timing.isValid else {
+                    throw MacroError.invalid("Typing pause must be 0–1000 ms; variation must keep it within that range. Timing belongs at the start of a program.")
+                }
+                result.append(7)
+                result.appendLE(UInt16(timing.pauseMilliseconds))
+                result.appendLE(UInt16(timing.variationMilliseconds))
             case .text(let text):
                 let bytes = Data(text.utf8)
                 guard !bytes.isEmpty, bytes.count <= maximumBytes else { throw MacroError.invalid("Invalid text operation size.") }
@@ -174,6 +182,10 @@ enum MacroProgram {
                 let body = try decodeRecords(&bodyReader, count: count, inRepeat: true, nodes: &nodes)
                 guard bodyReader.remaining == 0 else { throw MacroError.invalid("Invalid repeat body length.") }
                 operations.append(.repeatFor(duration: duration, intervalMin: low, intervalMax: high, body: body))
+            case 7:
+                guard !inRepeat, operations.isEmpty else { throw MacroError.invalid("Typing timing must be the first program operation.") }
+                operations.append(.typingTiming(.init(pauseMilliseconds: Int(try reader.u16()),
+                                                     variationMilliseconds: Int(try reader.u16()))))
             default: throw MacroError.invalid("Unknown macro operation.")
             }
         }

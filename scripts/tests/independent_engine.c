@@ -17,6 +17,9 @@ typedef struct {
     int mouse_balance;
     bool fail_mouse, fail_save, saved;
     bool fail_random;
+    bool fail_keyboard_save;
+    unsigned keyboard_saves;
+    ClipboardKeyboardSettings persisted_keyboard;
     uint32_t random_state;
     int8_t mouse_dx[4096], mouse_dy[4096];
     uint32_t mouse_at[4096];
@@ -128,10 +131,17 @@ static bool random_value(void* context, uint32_t* value) {
     *value = x->random_state;
     return true;
 }
+static bool save_keyboard(void* context, const ClipboardKeyboardSettings* settings) {
+    Fixture* x = context;
+    x->keyboard_saves++;
+    if(x->fail_keyboard_save) return false;
+    x->persisted_keyboard = *settings;
+    return true;
+}
 static void reset(void) {
     memset(&f, 0, sizeof(f)); f.usb = true;
     ClipboardServerIO io = {&f, send_frame, open_store, write_store, read_store, close_store,
-                            load_layout, usb_connected, press_key, release_key, mouse_move, save_program, random_value};
+                            load_layout, usb_connected, press_key, release_key, mouse_move, save_program, random_value, save_keyboard};
     clipboard_server_init(&f.server, io, "Host Test");
 }
 static void send_command(uint8_t command, const uint8_t* payload, size_t size) {
@@ -152,7 +162,7 @@ static void hello(void) {
     assert(f.server.authenticated && f.response[1] == ClipboardReady);
     assert(clipboard_read_u32(f.response + 4) == 65536 && clipboard_read_u16(f.response + 8) == 512);
     assert(f.response[10] == 28 && f.response[11] == 7);
-    assert(f.response[12] == 63);
+    assert(f.response[12] == 255);
 }
 static void id_command(uint8_t command, uint32_t id) {
     uint8_t bytes[4]; clipboard_write_u32(bytes, id); send_command(command, bytes, sizeof(bytes));
@@ -610,6 +620,102 @@ static void companion_info_checks(void) {
     clipboard_server_cancel(&f.server);
 }
 
+static void keyboard_settings_checks(void) {
+    reset();
+    uint8_t get[2] = {1, 0}, set[10] = {2, 0, 1, 1, 0, 1};
+    send_command(ClipboardGetKeyboard, get, sizeof(get));
+    assert(f.response[1] == ClipboardError && !f.keyboard_saves);
+    hello();
+    clipboard_server_keyboard_changed(&f.server);
+    assert(!f.messages[ClipboardKeyboardReply]); // Legacy clients never receive a new response unsolicited.
+    unsigned releases = f.releases;
+    send_command(ClipboardGetKeyboard, get, sizeof(get));
+    assert(f.response[1] == ClipboardKeyboardReply && f.response_size == 15);
+    assert(clipboard_read_u16(f.response + 5) == 1 && f.response[7] == ClipboardKeyboardOk);
+    assert(!f.keyboard_saves && !f.count && !f.mouse_count && f.releases == releases);
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardOk && f.server.keyboard_settings.layout == 1);
+    assert(f.server.keyboard_settings.override_saved && f.server.keyboard_settings.revision == 1);
+    assert(f.keyboard_saves == 1 && f.persisted_keyboard.layout == 1 && !f.count && !f.mouse_count);
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardConflict && f.keyboard_saves == 1);
+    clipboard_write_u32(set + 6, 1);
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardOk && f.keyboard_saves == 1 && f.server.keyboard_settings.revision == 1);
+    set[3] = 27; set[4] = 2;
+    f.fail_layout = true;
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardUnavailable && f.server.keyboard_settings.layout == 1);
+    f.fail_layout = false; f.fail_keyboard_save = true;
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardSaveFailed && f.server.keyboard_settings.revision == 1);
+    f.fail_keyboard_save = false;
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardOk && f.server.keyboard_settings.layout == 27);
+    set[3] = 28; clipboard_write_u32(set + 6, 2);
+    send_command(ClipboardSetKeyboard, set, sizeof(set)); assert(f.response[7] == ClipboardKeyboardInvalid);
+    set[3] = 1; set[4] = 3;
+    send_command(ClipboardSetKeyboard, set, sizeof(set)); assert(f.response[7] == ClipboardKeyboardInvalid);
+    set[4] = 0; set[5] = 2;
+    send_command(ClipboardSetKeyboard, set, sizeof(set)); assert(f.response[7] == ClipboardKeyboardInvalid);
+    set[5] = 1;
+    send_command(ClipboardSetKeyboard, set, sizeof(set) - 1); assert(f.response[7] == ClipboardKeyboardInvalid);
+
+    clipboard_server_disconnect(&f.server);
+    assert(f.server.keyboard_settings.layout == 27 && f.server.keyboard_settings.revision == 2);
+    assert(!f.server.keyboard_subscribed);
+    hello();
+    unsigned messages = f.messages[ClipboardKeyboardReply];
+    clipboard_server_keyboard_changed(&f.server); assert(f.messages[ClipboardKeyboardReply] == messages);
+    send_command(ClipboardGetKeyboard, get, sizeof(get));
+    ClipboardKeyboardSettings local = f.server.keyboard_settings; local.layout = 1; local.target = 0;
+    assert(clipboard_server_set_keyboard(&f.server, local) == ClipboardKeyboardOk);
+    clipboard_server_keyboard_changed(&f.server);
+    assert(clipboard_read_u16(f.response + 5) == 0 && f.response[8] == 1);
+
+    uint8_t program[64]; size_t size = ranged_program(program, 10000, 1000, 3000);
+    upload_mode(program, size, 0, 0, CLIPBOARD_STANDALONE);
+    id_command(ClipboardExecute, 7); advance(920);
+    uint32_t cursor = f.server.engine.cursor, end = f.server.engine.repeat_end, due = f.server.engine.due;
+    unsigned moved = f.mouse_count, keys = f.count; releases = f.releases;
+    send_command(ClipboardGetKeyboard, get, sizeof(get));
+    clipboard_write_u32(set + 6, f.server.keyboard_settings.revision);
+    send_command(ClipboardSetKeyboard, set, sizeof(set));
+    assert(f.response[7] == ClipboardKeyboardBusy && f.server.state == ClipboardJobRunning);
+    assert(f.server.engine.cursor == cursor && f.server.engine.repeat_end == end && f.server.engine.due == due);
+    assert(f.mouse_count == moved && f.count == keys && f.releases == releases);
+    clipboard_server_disconnect(&f.server);
+    assert(f.server.state == ClipboardJobRunning && f.server.keyboard_settings.layout == 1);
+    clipboard_server_cancel(&f.server);
+    f.server.keyboard_settings.revision = UINT32_MAX;
+    local.revision = UINT32_MAX;
+    assert(clipboard_server_set_keyboard(&f.server, local) == ClipboardKeyboardConflict);
+
+    // A local override uses the selected map, while the saved record remains original.
+    reset(); hello();
+    size = text_program(program, (const uint8_t*)"i", 1);
+    ClipboardSaved saved = {.layout = 0, .target = 0, .size = (uint32_t)size};
+    saved.id[0] = 1; strcpy(saved.name, "Original US");
+    saved.crc = clipboard_crc_update(0xFFFFFFFFU, program, size) ^ 0xFFFFFFFFU;
+    assert(open_store(&f, size) && write_store(&f, 0, program, size));
+    local = (ClipboardKeyboardSettings){.layout = 1, .override_saved = true, .revision = 1};
+    ClipboardSaved run = clipboard_saved_for_keyboard(&saved, &local);
+    assert(clipboard_server_run_saved(&f.server, &run, 90, f.now));
+    advance(2996); assert(!f.count);
+    finish(); assert(f.count == 1 && f.keys[0] == clipboard_turkish_mac['i']);
+    assert(saved.layout == 0 && run.layout == 1 && saved.crc == run.crc);
+    reset(); hello();
+    size = text_program(program, (const uint8_t*)"\xc3\xa7", 2);
+    saved.size = (uint32_t)size; saved.layout = 1;
+    saved.crc = clipboard_crc_update(0xFFFFFFFFU, program, size) ^ 0xFFFFFFFFU;
+    assert(open_store(&f, size) && write_store(&f, 0, program, size));
+    local.layout = 2;
+    run = clipboard_saved_for_keyboard(&saved, &local);
+    assert(!clipboard_server_run_saved(&f.server, &run, 91, f.now));
+    assert(!f.count && f.server.state == ClipboardJobIdle && saved.layout == 1);
+    close_store(&f);
+}
+
 static void map_reports(void) {
     printf("[");
     bool first = true;
@@ -661,12 +767,64 @@ static void swift_fixtures(const char* directory) {
         else if(i == 3) assert(f.count == 13 && f.keys[5] == 0x0804 && f.keys[6] == 0x2B);
         else assert(f.count == 0 && f.mouse_count == 2);
     }
+    char path[1024]; snprintf(path, sizeof(path), "%s/keyboard.wire", directory);
+    FILE* file = fopen(path, "rb"); assert(file);
+    uint8_t wire[128]; size_t size = fread(wire, 1, sizeof(wire), file); fclose(file);
+    assert(size && size < sizeof(wire)); reset();
+    for(size_t i = 0; i < size; i++) clipboard_server_feed(&f.server, wire + i, 1, f.now++);
+    assert(f.server.keyboard_settings.layout == 1 && f.server.keyboard_settings.target == 2);
+    assert(f.server.keyboard_settings.override_saved && f.server.keyboard_settings.revision == 1);
+    assert(!f.count && !f.mouse_count && !f.releases && !f.opened);
+    snprintf(path, sizeof(path), "%s/keyboard.reply", directory);
+    file = fopen(path, "rb"); assert(file);
+    size = fread(wire, 1, sizeof(wire), file); fclose(file);
+    assert(size == f.response_size && memcmp(wire, f.response, size) == 0);
+}
+
+static void typing_checks(void) {
+    uint8_t program[] = {'B','C','M','4',2,0,7,80,0,30,0,1,2,0,0,0,'a','b'};
+    const unsigned invalid[][2] = {{1001,0},{20,21},{900,101}};
+    for(unsigned i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        clipboard_write_u16(program + 7, invalid[i][0]); clipboard_write_u16(program + 9, invalid[i][1]);
+        reset(); hello(); upload(program, sizeof(program), 0, 0); assert(f.response[1] == ClipboardError && !f.count);
+    }
+    clipboard_write_u16(program + 7, 1000); clipboard_write_u16(program + 9, 0);
+    for(unsigned loss = 0; loss < 3; loss++) {
+        reset(); f.now = UINT32_MAX - 1000; hello(); upload(program, sizeof(program), 0, 0);
+        assert(f.response[1] == ClipboardVerified); id_command(ClipboardExecute, 7); advance(916);
+        assert(f.count == 1 && !f.held);
+        if(loss == 0) id_command(ClipboardCancel, 7);
+        else if(loss == 1) f.usb = false;
+        else clipboard_server_tick(&f.server, f.now, false);
+        advance(2000); assert(f.count == 1 && !f.held && !f.opened);
+    }
+    reset(); hello(); upload(program, sizeof(program), 0, 0); id_command(ClipboardExecute, 7);
+    advance(920); assert(f.count == 1); advance(988); assert(f.count == 1); finish(); assert(f.count == 2);
+    clipboard_write_u16(program + 7, 80); clipboard_write_u16(program + 9, 30);
+    reset(); hello(); upload(program, sizeof(program), 0, 0); f.fail_random = true; id_command(ClipboardExecute, 7);
+    finish(); assert(f.response[1] == ClipboardError && f.count == 1 && !f.held);
+    uint8_t misplaced[] = {'B','C','M','4',2,0,1,1,0,0,0,'x',7,80,0,0,0};
+    reset(); hello(); upload(misplaced, sizeof(misplaced), 0, 0); assert(f.response[1] == ClipboardError && !f.count);
+}
+
+static void interop_fixtures(const char* directory) {
+    for(unsigned i = 0; i < 5; i++) {
+        char path[1024]; snprintf(path, sizeof(path), "%s/interop-%u.wire", directory, i);
+        FILE* file = fopen(path, "rb"); assert(file);
+        uint8_t wire[4096]; size_t size = fread(wire, 1, sizeof(wire), file); fclose(file);
+        assert(size && size < sizeof(wire)); reset();
+        for(size_t offset = 0; offset < size; offset++) clipboard_server_feed(&f.server, wire + offset, 1, f.now++);
+        assert(f.server.state == ClipboardJobRunning && !f.count && !f.mouse_count);
+        finish(); assert(f.messages[ClipboardDone] == 1 && f.response[8] == 0);
+        assert(f.count || f.mouse_count);
+    }
 }
 
 int main(int argc, char** argv) {
     if(argc == 2 && strcmp(argv[1], "--map") == 0) { map_reports(); return 0; }
+    if(argc == 3 && strcmp(argv[1], "--interop") == 0) { interop_fixtures(argv[2]); return 0; }
     assert((clipboard_crc_update(0xFFFFFFFFU, (const uint8_t*)"123456789", 9) ^ 0xFFFFFFFFU) == 0xCBF43926);
-    protocol_checks(); program_checks(); interruption_checks(); standalone_checks(); saved_checks(); ranged_checks(); companion_info_checks();
+    protocol_checks(); program_checks(); interruption_checks(); standalone_checks(); saved_checks(); ranged_checks(); companion_info_checks(); keyboard_settings_checks(); typing_checks();
     if(argc == 2) swift_fixtures(argv[1]);
     puts("Independent v4 transfer / typed macro engine / cancellation / failures / fuzz checks passed");
     return 0;

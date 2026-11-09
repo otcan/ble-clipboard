@@ -214,6 +214,26 @@ On macOS Turkish Q, some characters use Option. Global shortcuts triggered by
 repeated modifier presses can interrupt typing; use a non-conflicting target
 shortcut. See [target shortcut compatibility](docs/HARDWARE-VALIDATION.md#target-shortcut-compatibility).
 
+### Standalone Keyboard Settings (0.5.4 Development)
+
+This feature is in the unreleased 0.5.4 source, not the 0.5.3 downloads above.
+On the idle Flipper library, press **Left > Keyboard**. Choose the target OS,
+open Layout for any of the 28 choices, then select **Save keyboard**. The setting
+is stored on SD and survives Mac disconnection and Flipper app restart.
+
+**Saved runs: Device** applies that keyboard to local runs without rewriting
+snapshots. **Saved runs: Original** preserves each snapshot's own keyboard; this
+is the upgrade default. The effective OS/layout is shown before Run. Missing
+layout assets or unsupported text reject the run instead of falling back to US.
+Saved shortcuts remain compiled for their original OS; resend a macro from the
+Mac when its shortcut semantics need to change.
+
+The Mac toolbar's **Flipper Keyboard** panel and Quick Paste controls share this
+setting. Changes sync while connected and idle. On reconnect, the Flipper's
+setting wins, including edits made without the Mac. New macros use these
+defaults; existing Mac macro definitions keep their explicit OS/layout. Settings
+cannot change during a job, and syncing never starts USB output.
+
 <details>
 <summary>All 28 target layout choices</summary>
 

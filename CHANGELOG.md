@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.5.4 - Unreleased
+
+- Add the full Windows x64 companion as an unsigned beta: searchable macro
+  library/editor, templates/parameters, shortcuts, Move Mouse/Repeat, import/export,
+  atomic backups/recovery, reviewed runs and compiled SD snapshots. Mac-compatible
+  schemas 1-3 preserve identifiers and migrate legacy mouse definitions.
+- Add Fast, Slow (+80 ms), Variable (+80 +/- 30 ms) and bounded Custom typing
+  on both desktops. Optional opcode 7 captures pacing in compiled snapshots;
+  older Flipper companions reject non-Fast pacing before upload.
+- Windows device selection, authenticated-pairing guidance, standalone timers,
+  reconnect attachment without replay, and remote Stop. Bluetooth runs on an MTA
+  worker rather than Tk's main thread.
+- Windows x64 portable bundle and per-user installer generated from VERSION,
+  with no administrator requirement or automatic launch. Libraries survive
+  upgrades/reinstall/uninstall. Info checks exact-version companion assets.
+- Shared Swift/Python compiler fixtures executed by the C engine; native Windows
+  offline UI and installer CI gates. Physical BLE/USB/focus/layout/long-run tests
+  remain explicitly unverified.
+- Add Flipper's idle Left > Keyboard menu with all 28 layouts, target OS and
+  explicit Save. Keyboard settings persist on SD across disconnects and restarts.
+- Optional device keyboard override for local saved-job runs. Show the effective
+  target/layout before Run, validate the entire program against it, and leave
+  snapshot files unchanged. Original saved layouts remain the upgrade default.
+- Sync keyboard settings in both directions with the Mac; Flipper wins on
+  reconnect. Quick Paste and new macro defaults share the synced preference;
+  existing Mac macro definitions retain their explicit target/layout.
+- Optional protocol-4 capability, correlated settings replies and revision checks
+  reject stale edits without retrying. Busy jobs reject changes; sync does not
+  emit HID input, execute jobs or change a running job's keyboard.
+- Atomic settings replacement/recovery; failed writes leave the previous setting
+  active. No automatic English fallback when a selected layout is unavailable.
+- Development build only. No installed-app replacement or public 0.5.4 release;
+  physical disconnected/reconnected checks remain pending owner approval.
+
 ## 0.5.3 - 2026-11-04
 
 - Fix Flipper SD directory initialization: use the application-data root without

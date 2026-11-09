@@ -63,6 +63,9 @@ struct CompanionInfoView: View {
                             .accessibilityLabel("Check Release Availability")
                         }.foregroundStyle(.secondary)
                         download("Mac App", detail: "macOS 14+ / Apple Silicon + Intel", icon: "laptopcomputer", url: check.release.mac, id: "download-mac")
+                        if check.release.includesWindows {
+                            download("Windows App", detail: "Windows 10/11 / x64 / unsigned beta installer", icon: "pc", url: check.release.windowsInstaller, id: "download-windows")
+                        }
                         download("Flipper App", detail: "Firmware 1.5.1 / API 88.2 / .fap", icon: "antenna.radiowaves.left.and.right", url: check.release.flipper, id: "download-flipper")
                         HStack(spacing: 18) {
                             releaseLink("Release Notes", check.release.page)

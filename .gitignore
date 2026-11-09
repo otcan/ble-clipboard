@@ -5,6 +5,7 @@
 !/.gitattributes
 !/.github/
 !/BLEClipboardMac/
+!/BLEClipboardWindows/
 !/BluetoothClipboard/
 !/docs/
 !/scripts/
@@ -20,6 +21,10 @@
 
 **/.DS_Store
 **/.build/
+**/build/
+**/.venv/
+**/.venv-*/
+**/*.spec
 **/dist/
 **/.swiftpm/
 **/.vscode/

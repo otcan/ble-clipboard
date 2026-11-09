@@ -1,0 +1,46 @@
+name: Windows x64 Beta
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        type: string
+        default: windows-x64-beta
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: BLEClipboardWindows/requirements*.txt
+      - run: python -m pip install -r BLEClipboardWindows/requirements-build.txt
+      - name: Offline Windows UI checks at 100, 150 and 200 percent
+        run: python BLEClipboardWindows/launch.py --offline-ui-test BLEClipboardWindows/dist/ui-checks
+      - name: Build Windows portable and per-user installer
+        run: ./BLEClipboardWindows/build.ps1
+      - name: Clean install and library-preserving reinstall/uninstall
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          ./BLEClipboardWindows/packaging/check_install.ps1 -Installer "$pwd/BLEClipboardWindows/dist/v$version/BLE-Clipboard-$version-windows-x64-setup.exe"
+      - name: Record reviewed source and dependencies
+        run: |
+          git rev-parse HEAD | Set-Content BLEClipboardWindows/dist/SOURCE-COMMIT.txt
+          python -m pip freeze | Set-Content BLEClipboardWindows/dist/BUILD-DEPENDENCIES.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.artifact-name || 'windows-x64-beta' }}
+          path: |
+            BLEClipboardWindows/dist/v*/
+            BLEClipboardWindows/dist/ui-checks/
+            BLEClipboardWindows/dist/SOURCE-COMMIT.txt
+            BLEClipboardWindows/dist/BUILD-DEPENDENCIES.txt

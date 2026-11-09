@@ -2,9 +2,11 @@ import Foundation
 
 enum TransferCommand: UInt8 {
     case hello = 1, begin = 2, chunk = 3, commit = 4, execute = 5, cancel = 6, save = 7, info = 8
+    case getKeyboard = 9, setKeyboard = 10
     case ready = 0x81, begun = 0x82, chunked = 0x83, verified = 0x84
     case started = 0x85, waitingUSB = 0x86, progress = 0x87, done = 0x88, error = 0xFF
     case saved = 0x89, active = 0x8A, infoReply = 0x8B
+    case keyboardReply = 0x8C
 }
 
 enum TransferDestination: String, CaseIterable, Identifiable {
@@ -83,6 +85,7 @@ struct TransferSession {
         case write(Data), ready(Int, String), accepted, progress(Double), waitingUSB
         case done(cancelled: Bool), failed(String, saving: Bool)
         case saved, resumed, timer(elapsed: UInt32, remaining: UInt32), companionInfo(CompanionInfo)
+        case keyboardSettings(KeyboardSettings), keyboardSyncFailed(String)
     }
     private(set) var capacity = 0
     private(set) var stage = Stage.idle
@@ -100,10 +103,41 @@ struct TransferSession {
     private var executionOffset: UInt32 = 0
     private var cancelRequested = false
     private var awaitingInfo = false
+    private(set) var supportsKeyboardSync = false
+    private(set) var supportsTypingTiming = false
+    private(set) var keyboardSettings: KeyboardSettings?
+    private var keyboardRequestID: UInt16 = 0
+    private var pendingKeyboardID: UInt16?
+    var keyboardSyncPending: Bool { pendingKeyboardID != nil }
+
+    mutating func requestKeyboardSettings() throws -> [Event] {
+        guard supportsKeyboardSync, !keyboardSyncPending else { throw MacroError.invalid("Keyboard sync is unavailable or already pending.") }
+        keyboardRequestID = keyboardRequestID == .max ? 1 : keyboardRequestID + 1
+        pendingKeyboardID = keyboardRequestID
+        var payload = Data(); payload.appendLE(keyboardRequestID)
+        return [write(.getKeyboard, payload)]
+    }
+
+    mutating func setKeyboardSettings(_ settings: KeyboardSettings) throws -> [Event] {
+        guard supportsKeyboardSync, !keyboardSyncPending, stage == .idle, let current = keyboardSettings,
+              current.revision == settings.revision else { throw MacroError.invalid("Keyboard is not ready to change. Refresh it while Flipper is idle.") }
+        keyboardRequestID = keyboardRequestID == .max ? 1 : keyboardRequestID + 1
+        pendingKeyboardID = keyboardRequestID
+        return [write(.setKeyboard, settings.requestPayload(id: keyboardRequestID))]
+    }
+
+    mutating func keyboardSyncTimedOut() -> [Event] {
+        guard keyboardSyncPending else { return [] }
+        pendingKeyboardID = nil
+        return [.keyboardSyncFailed("Keyboard sync timed out. Refresh to check Flipper before changing it again.")]
+    }
 
     mutating func begin(_ macro: CompiledMacro, jobID: UInt32 = UInt32.random(in: 1...UInt32.max),
                         saved: SavedProgramRequest? = nil, standalone: Bool = false) throws -> [Event] {
-        guard capacity > 0, stage == .idle, jobID != 0 else { throw MacroError.invalid("Flipper is not ready for a new macro.") }
+        guard capacity > 0, stage == .idle, jobID != 0, !keyboardSyncPending else { throw MacroError.invalid("Flipper is not ready for a new macro.") }
+        guard !macro.usesTypingTiming || supportsTypingTiming else {
+            throw MacroError.invalid("Update the Flipper companion to use slower or variable typing, or choose Fast.")
+        }
         guard macro.bytes <= capacity, macro.layout.wireID < layoutCount,
               targetMask & (1 << macro.target.wireID) != 0 else { throw MacroError.invalid("The Flipper cannot run this macro or layout.") }
         if let saved { _ = try saved.payload(jobID: jobID) }
@@ -165,12 +199,28 @@ struct TransferSession {
             }
             capacity = limit; chunkSize = chunk; layoutCount = layouts; targetMask = targets
             awaitingInfo = capabilities & 32 != 0
-            return [.ready(limit, name)] + (awaitingInfo ? [.write(TransferFrame(command: .info).encoded())] : [])
+            supportsKeyboardSync = capabilities & 64 != 0
+            supportsTypingTiming = capabilities & 128 != 0
+            return [.ready(limit, name)] + (awaitingInfo ? [.write(TransferFrame(command: .info).encoded())] : []) +
+                (supportsKeyboardSync ? try requestKeyboardSettings() : [])
         }
         if frame.command == .infoReply {
             guard awaitingInfo, capacity > 0, let info = CompanionInfo(payload: frame.payload) else { return [] }
             awaitingInfo = false
             return [.companionInfo(info)]
+        }
+        if frame.command == .keyboardReply {
+            guard supportsKeyboardSync, let reply = KeyboardSettingsReply(payload: frame.payload),
+                  reply.requestID == pendingKeyboardID || (reply.requestID == 0 && reply.result == 0) else { return [] }
+            let acknowledges = reply.requestID == pendingKeyboardID
+            if acknowledges { pendingKeyboardID = nil }
+            var events: [Event] = []
+            if reply.settings.revision >= (keyboardSettings?.revision ?? 0) {
+                keyboardSettings = reply.settings
+                events.append(.keyboardSettings(reply.settings))
+            }
+            if acknowledges, let error = reply.error { events.append(.keyboardSyncFailed(error)) }
+            return events
         }
         let id = try reader.u32()
         if frame.command == .active {

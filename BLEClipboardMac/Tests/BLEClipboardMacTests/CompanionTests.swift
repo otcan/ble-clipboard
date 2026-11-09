@@ -87,6 +87,19 @@ final class CompanionTests: XCTestCase {
         XCTAssertEqual(try decoder.append(frame.encoded().dropFirst(5)), [frame])
     }
 
+    func testWindowsReleaseRequiresMatchingWindowsAssetsToo() throws {
+        let current = CompanionRelease(version: AppVersion("0.5.4")!)
+        let names = [current.macName, "ble_clipboard.fap", "SHA256SUMS.txt", current.windowsInstallerName, current.windowsPortableName]
+        var json: [String: Any] = ["tag_name": current.tag, "draft": false, "prerelease": false, "html_url": current.page.absoluteString]
+        func data(_ names: [String]) throws -> Data {
+            json["assets"] = names.map { ["name": $0, "state": "uploaded", "size": 1, "browser_download_url": "https://github.com/otcan/ble-clipboard/releases/download/\(current.tag)/\($0)"] as [String: Any] }
+            return try JSONSerialization.data(withJSONObject: json)
+        }
+        XCTAssertEqual(current.availability(status: 200, data: try data(names)), .available(prerelease: false))
+        XCTAssertEqual(current.availability(status: 200, data: try data(Array(names.dropLast()))), .incomplete)
+        XCTAssertFalse(release.includesWindows)
+    }
+
     @MainActor func testPreviewChecksNeverOpenTheNetwork() async {
         let check = CompanionReleaseCheck(release: release, preview: true)
         await check.check()

@@ -1,7 +1,7 @@
-# BLE Clipboard 0.5.3 for macOS
+# BLE Clipboard 0.5.4 for macOS (Development)
 
 One native Mac app contains Quick Paste and the existing macro library. Its
-companion is the independent **BLE Clipboard 0.5.3** Flipper app under
+companion is the independent **BLE Clipboard 0.5.4** Flipper app under
 **Apps > Bluetooth**. Both apps must match; no third-party typing engine is used.
 
 Build with `./build_app.sh --universal`; output is `dist/BLE Clipboard.app`.
@@ -12,6 +12,14 @@ Create/edit/reorder macros, enter parameters, review expanded output, confirm
 the intended target and explicitly Run. Quick Paste additionally loads the
 clipboard or a UTF-8 text file. There are 28 layout choices; native Turkish
 letters remain experimental. Unsupported Unicode is rejected.
+
+The Flipper Keyboard toolbar panel and Quick Paste share persistent keyboard
+defaults. With a matching companion, settings sync both ways while idle and
+the Flipper's persisted choice wins on reconnect. This includes settings changed
+on Flipper without the Mac. New macros inherit these defaults; existing macro
+definitions keep their explicit target/layout. Use for Saved Runs controls the
+device's local-run override without editing snapshots. An older companion can
+still connect, but has no keyboard sync. No sync or settings request emits input.
 
 Prior JSON schema 1 and existing IDs stay readable; mouse-containing documents
 use schema 3; schema 2 mouse actions migrate to generic steps. Store-preview containers

@@ -157,6 +157,10 @@ struct CompiledMacro {
     }
     var bytes: Int { program.count }
     var hasMouse: Bool { operations.contains { $0.hasMouse } }
+    var usesTypingTiming: Bool {
+        if case .typingTiming = operations.first { return true }
+        return false
+    }
 }
 
 enum MacroCompiler {
@@ -255,8 +259,10 @@ enum MacroCompiler {
         }
     }
 
-    static func compile(_ macro: SavedMacro, context: MacroRunContext, limit: Int = maximumBytes) throws -> CompiledMacro {
+    static func compile(_ macro: SavedMacro, context: MacroRunContext, limit: Int = maximumBytes,
+                        timing: TypingTiming = .fast) throws -> CompiledMacro {
         try validate(macro)
+        guard timing.isValid else { throw MacroError.invalid("Typing pause must be 0–1000 ms; variation must keep it within that range.") }
         var operations: [MacroOperation] = []
         var preview: [String] = []
         var encodedBytes = 6
@@ -309,6 +315,11 @@ enum MacroCompiler {
             return result
         }
         operations = try compileSteps(macro.steps)
+        if timing != .fast {
+            try reserve(5)
+            operations.insert(.typingTiming(timing), at: 0)
+            preview.insert("Typing: \(timing.summary)", at: 0)
+        }
         let result = try CompiledMacro(operations: operations, preview: preview, layout: macro.layout, target: macro.target)
         guard result.bytes <= min(limit, maximumBytes) else {
             throw MacroError.invalid("Expanded macro exceeds the connected device's capacity.")

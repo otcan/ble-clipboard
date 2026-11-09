@@ -5,6 +5,9 @@ reviewed clipboard text and macros over authenticated Bluetooth LE, then send
 keyboard and mouse input over USB to a device you own or have permission to use.
 No Ducker dependency or target-side agent is required.
 
+Current source is the unreleased 0.5.4 development pair. The public downloads
+linked below remain 0.5.3; they do not contain standalone keyboard settings.
+
 ## Features
 
 - Clipboard text, literal text, parameters, shortcuts and delays.
@@ -15,11 +18,12 @@ No Ducker dependency or target-side agent is required.
 - Explicit standalone jobs with elapsed/remaining timer and physical Stop.
 - Save up to 20 compiled clipboard or macro snapshots on SD for confirmed local Run.
 - Info and Downloads screens with a matching-release QR code.
+- An idle Left > Keyboard menu with persistent layout/OS preferences and Mac sync.
 
 ## Requirements
 
 - Flipper Zero with official firmware 1.5.1 or a compatible API.
-- BLE Clipboard 0.5.3 on macOS 14 or later to create and send jobs.
+- The matching Mac companion on macOS 14 or later to create and send jobs.
 - A USB cable to the intended keyboard/mouse target.
 - An SD card for saved jobs, programs larger than 4 KiB, and non-built-in layout assets.
   Layout files come from the official firmware resources.
@@ -33,6 +37,16 @@ the pairing codes. Choose the target OS/layout, review the expanded output and
 confirm target focus before Run. Save to Flipper stores a fixed snapshot without
 executing it. On Flipper, Up/Down selects a saved entry and OK opens it; Run needs
 a second confirmation. Right from the idle list opens Info, then OK opens Downloads.
+
+Left from the idle list opens Keyboard. Up/Down selects Target, Layout, Saved
+runs or Save keyboard; OK changes/opens a choice, and Save keyboard commits it.
+Left/Back cancels an unsaved edit. Selecting a layout enables Saved runs: Device;
+choose Original instead to keep each snapshot's own layout/OS. The preference
+survives BLE loss and app restart. Local Run shows its effective keyboard and
+validates all text against it; it never falls back to English on a missing map.
+Snapshots are not rewritten. Compiled shortcut modifiers are not recompiled for
+a different OS. A keyboard change while Run confirmation is open requires review
+again. The Mac reads the device setting on reconnect; changes sync only while idle.
 
 Left or Back stops an active job. Normal jobs stop on Bluetooth loss. Explicit
 standalone jobs continue without the Mac, but USB loss or exiting the app stops

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "../../BluetoothClipboard/clipboard_library.h"
 #include "../../BluetoothClipboard/transfer_protocol.h"
+#include "../../BluetoothClipboard/keyboard_settings_store.h"
 
 struct File { Storage* storage; FILE* file; DIR* directory; };
 File* storage_file_alloc(Storage* storage) {
@@ -83,6 +84,50 @@ static void assert_loaded(ClipboardLibrary* library, const ClipboardSaved* saved
     assert(library->storage->allocations == 0);
 }
 
+static void keyboard_settings_checks(Storage* storage) {
+    ClipboardKeyboardSettings settings, old = {.layout = 1, .target = 0, .override_saved = true, .revision = 1};
+    assert(!clipboard_keyboard_settings_load(storage, &settings));
+    assert(!settings.override_saved && settings.layout == 0 && settings.revision == 0);
+    assert(clipboard_keyboard_settings_save(storage, &old));
+    assert(clipboard_keyboard_settings_load(storage, &settings) && settings.layout == 1 && settings.override_saved && settings.revision == 1);
+    ClipboardKeyboardSettings next = {.layout = 27, .target = 2, .revision = 2};
+    for(unsigned failure = 0; failure < 4; failure++) {
+        storage->rename_count = 0; storage->fail_rename = failure >= 2 ? failure - 1 : 0;
+        storage->fail_write = failure == 0; storage->fail_sync = failure == 1;
+        assert(!clipboard_keyboard_settings_save(storage, &next));
+        storage->fail_write = storage->fail_sync = false; storage->fail_rename = 0;
+        assert(clipboard_keyboard_settings_load(storage, &settings) && settings.revision == 1 && settings.layout == 1);
+    }
+    const char* final = "library/.keyboard-v1", *backup = "library/.keyboard-v1.bak";
+    assert(rename(final, backup) == 0);
+    assert(clipboard_keyboard_settings_load(storage, &settings) && settings.revision == 1);
+    assert(access(backup, F_OK) != 0);
+    assert(clipboard_keyboard_settings_save(storage, &next));
+    assert(clipboard_keyboard_settings_load(storage, &settings) && settings.layout == 27 && settings.target == 2 && !settings.override_saved);
+    file_copy(final, backup); corrupt(final, 4);
+    assert(clipboard_keyboard_settings_load(storage, &settings) && settings.revision == 2);
+    assert(access(backup, F_OK) != 0);
+    corrupt(final, 0);
+    assert(!clipboard_keyboard_settings_load(storage, &settings));
+    assert(!settings.revision && !settings.override_saved); // No unverified staging promotion or English override.
+    corrupt(final, 0);
+    settings = next; settings.layout = 28; assert(!clipboard_keyboard_settings_save(storage, &settings));
+    settings = next; settings.target = 3; assert(!clipboard_keyboard_settings_save(storage, &settings));
+    settings = next; settings.revision = 0; assert(!clipboard_keyboard_settings_save(storage, &settings));
+    assert(clipboard_keyboard_settings_load(storage, &settings) && settings.revision == 2 && settings.layout == 27);
+
+    ClipboardSaved snapshot = metadata(99, 14);
+    uint8_t before[CLIPBOARD_SAVED_HEADER], after[CLIPBOARD_SAVED_HEADER];
+    assert(clipboard_saved_encode(&snapshot, before));
+    ClipboardSaved run = clipboard_saved_for_keyboard(&snapshot, &old);
+    assert(run.layout == 1 && run.target == 0 && run.size == snapshot.size && run.crc == snapshot.crc);
+    assert(clipboard_saved_encode(&snapshot, after) && memcmp(before, after, sizeof(before)) == 0);
+    run = clipboard_saved_for_keyboard(&snapshot, &next);
+    assert(run.layout == snapshot.layout && run.target == snapshot.target);
+    assert(storage->allocations == 0);
+    puts("Keyboard SD settings: restart / rollback / interrupted replace / corruption / unchanged snapshots checks passed");
+}
+
 int main(void) {
     Storage storage = {0}; ClipboardLibrary library = {.storage = &storage};
     assert(!storage_simply_mkdir(&storage, APP_DATA_PATH("")));
@@ -145,6 +190,7 @@ int main(void) {
     ClipboardLibrary restarted = {.storage = &storage}; clipboard_library_refresh(&restarted);
     assert(restarted.count == CLIPBOARD_SAVED_LIMIT && storage.allocations == 0);
     assert_loaded(&restarted, &extra, data);
+    keyboard_settings_checks(&storage);
     puts("Saved SD library: persistence / 20-slot limit / atomic replace / recovery / corruption / bounded copy checks passed");
     return 0;
 }

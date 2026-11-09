@@ -1,6 +1,6 @@
 # BLE Clipboard Protocol 4
 
-Independent typed-macro transport. Current source is 0.5.2; old protocols are not
+Independent typed-macro transport. Current source is 0.5.4; old protocols are not
 accepted. Bluetooth controls an authenticated Flipper app; USB emits keyboard/mouse
 reports to the target. This is not BLE HID or a target clipboard service.
 
@@ -36,6 +36,8 @@ All integers below are unsigned little-endian. Each job uses a nonzero random
 | 6 | CANCEL | job:u32 |
 | 7 | SAVE | job:u32, UUID:16 bytes, nameLength:u8, UTF-8 name:1-79 bytes |
 | 8 | INFO | empty; optional read-only query after HELLO |
+| 9 | GET_KEYBOARD | request:u16 (nonzero); optional read-only query and subscription |
+| 10 | SET_KEYBOARD | request:u16, schema:u8=1, layout:u8, target:u8, overrideSaved:u8=0/1, expectedRevision:u32 |
 
 | ID | Response | Payload |
 | --- | --- | --- |
@@ -50,6 +52,7 @@ All integers below are unsigned little-endian. Each job uses a nonzero random
 | 0x89 | SAVED | job:u32; save complete, no execution |
 | 0x8A | ACTIVE | job:u32, total:u32, elapsedMs:u32, mouseRemainingMs:u32, flags:u8 |
 | 0x8B | INFO_REPLY | schema:u8=1, appMajor:u16, appMinor:u16, appPatch:u16, wire:u8, buildApiMajor:u16, buildApiMinor:u16, target:u8 |
+| 0x8C | KEYBOARD_REPLY | schema:u8=1, request:u16, result:u8, layout:u8, target:u8, overrideSaved:u8=0/1, revision:u32 |
 | 0xFF | ERROR | job:u32 (0 for link-wide errors), code:u8, UTF-8 diagnostic |
 
 Targets are 0 macOS, 1 Windows, 2 Linux; targetMask is 7. Stable layout IDs 0-27
@@ -59,8 +62,8 @@ Turkish Q uses the built-in QWERTY-PC map.
 
 BEGIN flags: 0 normal run, 1 explicitly standalone run, 2 save-only. Other values
 are rejected. Save-only jobs cannot EXECUTE; normal jobs cannot SAVE. Capabilities
-is 63 (legacy mouse=1, saved programs=2, standalone=4, Move Mouse=8, Repeat=16,
-optional companion info=32). The client requires only the first five bits. If bit
+is 127 (legacy mouse=1, saved programs=2, standalone=4, Move Mouse=8, Repeat=16,
+optional companion info=32, optional keyboard sync=64). The client requires only the first five bits. If bit
 32 is present, it queues one empty INFO query after READY. An older server with
 31 is not queried and its app version stays Unknown. INFO_REPLY is sent only in
 response to a query, so older clients never see an unsolicited unknown response.
@@ -69,6 +72,46 @@ version. Invalid/missing optional metadata leaves the version Unknown without
 resetting a transfer or initiating output. INFO never changes job state, storage,
 timers or HID reports. HELLO during an autonomous run emits
 READY then ACTIVE, attaching remote Stop to the existing job without restarting it.
+
+## Keyboard Settings
+
+Bit 64 opts the client into GET_KEYBOARD after READY. Older servers with 31/63
+are not queried, and servers never send KEYBOARD_REPLY to an older client that
+has not requested keyboard settings. Disconnect clears the subscription, not
+the keyboard preference. GET works during a run without changing its state.
+
+GET and SET use nonzero request IDs; responses echo them. Physical changes notify
+subscribed clients with request=0. Result codes are 0 success, 1 stale revision,
+2 busy, 3 invalid request, 4 unavailable layout and 5 SD save failure. Every result
+includes the actual current setting. Settings errors do not use the job ERROR
+path, drop a job, release keys or alter a timer. SET requires idle state and the
+current revision; it never retries a stale change. Successful changes increment
+the revision only after durable storage succeeds. Identical values are a no-op;
+revision wrap is rejected. Settings changes never load a map into an active engine.
+
+The Mac allows one settings request at a time and blocks new transfers until its
+reply or a separate ten-second settings timeout. Malformed, uncorrelated and
+older-revision replies cannot change preferences or reset a job. A timeout does
+not reconnect or resend; Refresh reads the actual device state. On reconnect the
+device preference wins, including changes made while the Mac was disconnected.
+Offline Mac defaults persist locally but are not blindly pushed on reconnect.
+
+The SD preference is a 16-byte `BCK1` record: layout=4, target=5, overrideSaved=6,
+reserved zero=7, revision:u32=8, CRC32 of bytes 0..11=12. Files are `.keyboard-v1`,
+`.keyboard-v1.tmp` and `.keyboard-v1.bak` in app data. Save writes/syncs/verifies
+staging before atomic replacement. Startup keeps a valid committed record or
+recovers its valid backup; it never promotes staging. Missing/corrupt preferences
+default to original saved-job layouts, not a forced English override.
+
+Choosing a device keyboard enables its optional local-run override; the menu's
+Saved runs: Original choice disables it. Effective target/layout are shown before
+physical Run. A changed revision invalidates an open Run confirmation. The
+snapshot is loaded and verified using its original metadata before applying an
+in-memory override and performing whole-program preflight. Unsupported text or a
+missing map rejects the run, never silently falls back to US. Explicit key records
+retain their compiled modifiers; changing OS cannot recompile saved shortcuts.
+Mac-triggered runs and existing Mac definitions retain their explicitly reviewed
+layout/target; Quick Paste and newly created macros use the synced defaults.
 
 ## Typed Program
 

@@ -206,5 +206,19 @@ final class ProgramFixtureTests: XCTestCase {
             }
             try wire.write(to: directory.appendingPathComponent("\(name).wire"))
         }
+        var synced = TransferSession()
+        let helper = TransferProtocolTests()
+        var ready = helper.ready(); ready.payload[8] = 127
+        var keyboardWire = TransferProtocol.hello
+        for event in try synced.receive(ready) {
+            if case .write(let data) = event { keyboardWire.append(data) }
+        }
+        _ = try synced.receive(.init(command: .keyboardReply, payload: Data([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0])))
+        for event in try synced.setKeyboardSettings(.init(layout: .turkishQ, target: .linux, useForSavedRuns: true)) {
+            if case .write(let data) = event { keyboardWire.append(data) }
+        }
+        try keyboardWire.write(to: directory.appendingPathComponent("keyboard.wire"))
+        let expected = TransferFrame(command: .keyboardReply, payload: Data([1, 2, 0, 0, 1, 2, 1, 1, 0, 0, 0]))
+        try expected.encoded().write(to: directory.appendingPathComponent("keyboard.reply"))
     }
 }

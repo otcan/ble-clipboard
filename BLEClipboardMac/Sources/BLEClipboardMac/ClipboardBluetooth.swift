@@ -23,6 +23,17 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
     @Published private(set) var elapsedSeconds: UInt32 = 0
     @Published private(set) var standaloneActive = false
     @Published private(set) var companionInfo: CompanionInfo?
+    @Published private(set) var keyboardSettings = KeyboardSettings()
+    @Published private(set) var keyboardSyncSupported = false
+    @Published private(set) var keyboardSyncPending = false
+    @Published private(set) var keyboardHasSynced = false
+    @Published private(set) var keyboardStatus = "Local keyboard defaults"
+
+    var canChangeKeyboard: Bool {
+        !isBusy && !keyboardSyncPending && !isConnecting &&
+            (!isConnected || isReady) && (!isReady || !keyboardSyncSupported || keyboardHasSynced)
+    }
+    var canTransfer: Bool { isReady && !isBusy && !keyboardSyncPending }
 
     private static let service = CBUUID(string: "A6F1D9C0-7B21-4C9A-8E52-3D7710AA0301")
     private static let rx = CBUUID(string: "A6F1D9C0-7B21-4C9A-8E52-3D7710AA0303")
@@ -38,12 +49,16 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
     private var writes: [Data] = []
     private var writeInFlight = false
     private var watchdog: DispatchWorkItem?
+    private var keyboardWatchdog: DispatchWorkItem?
     private var wantsScan = false
     private let preview: Bool
+    private let preferences: UserDefaults
     private var sleepObserver: NSObjectProtocol?
 
-    init(preview: Bool = false) {
+    init(preview: Bool = false, preferences: UserDefaults = .standard) {
         self.preview = preview
+        self.preferences = preferences
+        keyboardSettings = preview ? .init() : .load(from: preferences)
         super.init()
         sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self, self.isConnected else { return }
@@ -54,6 +69,32 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
     }
 
     deinit { if let sleepObserver { NSWorkspace.shared.notificationCenter.removeObserver(sleepObserver) } }
+
+    func changeKeyboard(layout: KeyboardLayout? = nil, target: TargetSystem? = nil, useForSavedRuns: Bool? = nil) {
+        guard canChangeKeyboard else { return }
+        var changed = keyboardSettings
+        if let layout { changed.layout = layout }
+        if let target { changed.target = target }
+        changed.useForSavedRuns = useForSavedRuns ?? true
+        if isReady && keyboardSyncSupported {
+            do {
+                handle(try session.setKeyboardSettings(changed))
+                keyboardStatus = "Saving keyboard on Flipper..."
+            } catch { keyboardStatus = error.localizedDescription }
+        } else {
+            keyboardSettings = changed
+            if !preview { changed.store(in: preferences) }
+            keyboardStatus = isReady ? "Local defaults; companion has no keyboard sync" : "Local defaults; Flipper setting wins on reconnect"
+        }
+    }
+
+    func refreshKeyboard() {
+        guard isReady, keyboardSyncSupported, !isBusy, !keyboardSyncPending else { return }
+        do {
+            handle(try session.requestKeyboardSettings())
+            keyboardStatus = "Reading Flipper keyboard..."
+        } catch { keyboardStatus = error.localizedDescription }
+    }
 
     func scan() {
         guard !preview, !isBusy else { return }
@@ -129,7 +170,7 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
 
     private func transfer(_ compiled: CompiledMacro, hideApp: Bool = false,
                           standalone: Bool = false, saved: SavedProgramRequest? = nil) {
-        guard isReady, !isBusy else { return }
+        guard canTransfer else { return }
         do {
             let events = try session.begin(compiled, saved: saved, standalone: standalone)
             isBusy = true
@@ -162,6 +203,9 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
 
     private func clear() {
         watchdog?.cancel()
+        keyboardWatchdog?.cancel(); keyboardWatchdog = nil
+        keyboardSyncSupported = false; keyboardSyncPending = false; keyboardHasSynced = false
+        keyboardStatus = "Local keyboard defaults"
         peripheral?.delegate = nil
         peripheral = nil
         rx = nil
@@ -229,7 +273,14 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
                 isReady = true
                 isConnecting = false
                 status = "Connected to \(deviceName)"
+                keyboardSyncSupported = session.supportsKeyboardSync
+                keyboardStatus = keyboardSyncSupported ? "Reading Flipper keyboard..." : "Companion has no keyboard sync"
             case .companionInfo(let info): companionInfo = info
+            case .keyboardSettings(let settings):
+                keyboardSettings = settings; keyboardHasSynced = true
+                if !preview { settings.store(in: preferences) }
+                keyboardStatus = "Keyboard synced with Flipper"
+            case .keyboardSyncFailed(let message): keyboardStatus = message
             case .accepted:
                 standaloneActive = session.autonomous
                 status = session.autonomous ? "Standalone run active on Flipper" : "Running on USB target..."
@@ -257,6 +308,17 @@ final class ClipboardBluetooth: NSObject, ObservableObject {
             case .failed(let error, let saving):
                 fail(Self.rejectionStatus(error, saving: saving))
             }
+        }
+        keyboardSyncPending = session.keyboardSyncPending
+        if keyboardSyncPending && keyboardWatchdog == nil {
+            let task = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.handle(self.session.keyboardSyncTimedOut())
+            }
+            keyboardWatchdog = task
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: task)
+        } else if !keyboardSyncPending {
+            keyboardWatchdog?.cancel(); keyboardWatchdog = nil
         }
     }
 }

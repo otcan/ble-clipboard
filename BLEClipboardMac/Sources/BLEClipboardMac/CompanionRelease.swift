@@ -82,6 +82,11 @@ struct CompanionRelease {
     var source: URL { Self.repository.appendingPathComponent("tree/\(tag)") }
     var macName: String { "BLE-Clipboard-\(version)-universal.zip" }
     var mac: URL { asset(macName) }
+    var includesWindows: Bool { version.major > 0 || version.minor > 5 || (version.minor == 5 && version.patch >= 4) }
+    var windowsInstallerName: String { "BLE-Clipboard-\(version)-windows-x64-setup.exe" }
+    var windowsPortableName: String { "BLE-Clipboard-\(version)-windows-x64-portable.zip" }
+    var windowsInstaller: URL { asset(windowsInstallerName) }
+    var windowsPortable: URL { asset(windowsPortableName) }
     var flipper: URL { asset("ble_clipboard.fap") }
     var checksums: URL { asset("SHA256SUMS.txt") }
     private func asset(_ name: String) -> URL { Self.repository.appendingPathComponent("releases/download/\(tag)/\(name)") }
@@ -107,7 +112,8 @@ struct CompanionRelease {
         guard !release.draft else { return .notPublished }
         guard release.tag_name == tag, release.html_url == page.absoluteString,
               release.assets.count <= 64 else { return .incomplete }
-        let expected = [(macName, mac), ("ble_clipboard.fap", flipper), ("SHA256SUMS.txt", checksums)]
+        var expected = [(macName, mac), ("ble_clipboard.fap", flipper), ("SHA256SUMS.txt", checksums)]
+        if includesWindows { expected += [(windowsInstallerName, windowsInstaller), (windowsPortableName, windowsPortable)] }
         guard expected.allSatisfy({ name, url in
             let matches = release.assets.filter { $0.name == name }
             return matches.count == 1 && matches[0].state == "uploaded" && matches[0].size > 0 &&

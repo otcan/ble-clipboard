@@ -1,5 +1,30 @@
 # Hardware Validation
 
+## 0.5.4 - Keyboard Settings (Unreleased)
+
+Local checks on 2026-11-06 passed: all 50 Swift tests, AddressSanitizer/UBSan C
+suites, Swift-to-C fixtures and generated version/QR validation. The Flipper FAP
+build passes target 7 / API 88.2 checks and its source fingerprint verification.
+The direct Mac build contains arm64/x86_64 and passes deep/strict ad-hoc signature
+verification. The unsigned sandbox archive validates; neither build is a new
+notarized public release or a Store-uploadable signed archive.
+
+Host checks cover all 28 on-device choices, explicit Save/Back navigation,
+persistent settings and restart recovery, failed SD writes/sync/renames, corrupt
+records, and unchanged saved snapshot headers. C protocol tests verify no HID or
+job-storage activity on settings sync, no unsolicited response to older clients,
+revision conflicts, missing maps, disconnect retention and busy-run rejection
+without changing keys, mouse reports, cursor or deadline. Swift tests cover the
+optional handshake, settings codec, stale/malformed replies, conflicts, timeouts,
+Mac defaults persistence and no BLE access for local changes. Swift-generated
+settings request/reply fixtures are checked byte-for-byte by the actual C server.
+
+No live BLE/USB test, input automation, app installation, firmware change or
+pairing-key modification is part of these checks. Physical keyboard menu use,
+disconnected local runs, persistence across a real restart and Mac reconnect
+sync still require separate owner-approved validation. The existing 0.5.3 live
+capture below does not certify 0.5.4 or resolve its earlier input/focus interference.
+
 ## 0.5.3 - Live Text and Delay Run
 
 On 2026-11-05, with explicit owner approval, the installed 0.5.3 Mac and Flipper

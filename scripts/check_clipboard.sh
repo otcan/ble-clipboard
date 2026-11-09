@@ -12,6 +12,10 @@ fi
     -o "$BUILD/info-tests"
 "$BUILD/info-tests"
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+    -I"$ROOT/scripts/tests/info_stub" \
+    "$ROOT/scripts/tests/keyboard_menu.c" "$ROOT/BluetoothClipboard/keyboard_menu.c" -o "$BUILD/keyboard-menu"
+"$BUILD/keyboard-menu"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
     -I"$ROOT/scripts/tests/hid_stub" \
     "$ROOT/scripts/tests/clipboard_hid.c" -o "$BUILD/hid-tests"
 "$BUILD/hid-tests"
@@ -21,6 +25,7 @@ fi
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
     -I"$ROOT/scripts/tests/storage_stub" \
     "$ROOT/scripts/tests/saved_library.c" "$ROOT/BluetoothClipboard/clipboard_library.c" \
+    "$ROOT/BluetoothClipboard/keyboard_settings_store.c" \
     "$ROOT/BluetoothClipboard/saved_program.c" "$ROOT/BluetoothClipboard/macro_engine.c" \
     "$ROOT/BluetoothClipboard/transfer_protocol.c" -o "$BUILD/library-tests"
 (cd "$BUILD" && "$BUILD/library-tests")
@@ -29,6 +34,11 @@ fi
     "$ROOT/BluetoothClipboard/transfer_protocol.c" "$ROOT/BluetoothClipboard/saved_program.c" -o "$BUILD/engine"
 CLIPBOARD_FIXTURE_DIR="$BUILD/fixtures" swift test --package-path "$ROOT/BLEClipboardMac" --filter ProgramFixtureTests
 "$BUILD/engine" "$BUILD/fixtures"
+CLIPBOARD_FIXTURE_DIR="$BUILD/fixtures" swift test --package-path "$ROOT/BLEClipboardMac" --filter InteropTests
+PYTHON=${PYTHON:-python3}
+(cd "$ROOT/BLEClipboardWindows" && CLIPBOARD_FIXTURE_DIR="$BUILD/fixtures" "$PYTHON" -m unittest discover -s tests -v)
+"$BUILD/engine" --interop "$BUILD/fixtures/swift"
+"$BUILD/engine" --interop "$BUILD/fixtures/python"
 "$BUILD/engine" --map > "$BUILD/keyboard-reports.json"
 if [ "$(uname -s)" = Darwin ]; then
     swift "$ROOT/Store/HardwareTests/KeyboardLayoutProbe.swift" --verify "$BUILD/keyboard-reports.json"
