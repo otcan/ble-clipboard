@@ -4,102 +4,93 @@ import ctypes
 import json
 import sys
 import tempfile
+import time
 import tkinter as tk
 from ctypes import wintypes
 from pathlib import Path
 from tkinter import font
 
-from PIL import Image, ImageStat
+from PIL import ImageGrab, ImageStat
 
 from .app import ClipboardApp
 from .macros import new_macro, step
 
 
 def capture(window, path):
-    user, gdi = ctypes.windll.user32, ctypes.windll.gdi32
+    user = ctypes.windll.user32
     user.GetAncestor.restype = wintypes.HWND
-    user.GetWindowDC.restype = wintypes.HDC
-    gdi.CreateCompatibleDC.restype = wintypes.HDC
-    gdi.CreateCompatibleBitmap.restype = wintypes.HBITMAP
-    gdi.SelectObject.restype = wintypes.HGDIOBJ
     user.GetAncestor.argtypes = (wintypes.HWND, wintypes.UINT)
-    user.GetWindowDC.argtypes = (wintypes.HWND,)
     user.GetWindowRect.argtypes = (wintypes.HWND, ctypes.POINTER(wintypes.RECT))
-    user.ReleaseDC.argtypes = (wintypes.HWND, wintypes.HDC)
-    user.PrintWindow.argtypes = (wintypes.HWND, wintypes.HDC, wintypes.UINT)
-    gdi.CreateCompatibleDC.argtypes = (wintypes.HDC,)
-    gdi.CreateCompatibleBitmap.argtypes = (wintypes.HDC, ctypes.c_int, ctypes.c_int)
-    gdi.SelectObject.argtypes = (wintypes.HDC, wintypes.HGDIOBJ)
-    gdi.GetDIBits.argtypes = (
-        wintypes.HDC,
-        wintypes.HBITMAP,
-        wintypes.UINT,
-        wintypes.UINT,
-        ctypes.c_void_p,
-        ctypes.c_void_p,
+    user.SetWindowPos.argtypes = (
+        wintypes.HWND,
+        wintypes.HWND,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
         wintypes.UINT,
     )
-    gdi.DeleteDC.argtypes = (wintypes.HDC,)
-    gdi.DeleteObject.argtypes = (wintypes.HGDIOBJ,)
     hwnd = user.GetAncestor(window.winfo_id(), 2)
     rect = wintypes.RECT()
     user.GetWindowRect(hwnd, ctypes.byref(rect))
     width, height = rect.right - rect.left, rect.bottom - rect.top
-    if width > window.winfo_screenwidth() or height > window.winfo_screenheight():
-        raise RuntimeError(
-            f"CI display too small for complete screenshot: {width}x{height} on {window.winfo_screenwidth()}x{window.winfo_screenheight()}"
-        )
-    dc = user.GetWindowDC(hwnd)
-    memory = gdi.CreateCompatibleDC(dc)
-    bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
-    previous = gdi.SelectObject(memory, bitmap)
+    viewport_w, viewport_h = window.winfo_screenwidth(), window.winfo_screenheight()
+    xs = list(range(0, width, viewport_w))
+    ys = list(range(0, height, viewport_h))
+    colored = False
+    receipts = []
     try:
-        if not user.PrintWindow(hwnd, memory, 2):
-            raise RuntimeError("Windows failed to render test window.")
-
-        class Header(ctypes.Structure):
-            _fields_ = [
-                ("size", wintypes.DWORD),
-                ("width", wintypes.LONG),
-                ("height", wintypes.LONG),
-                ("planes", wintypes.WORD),
-                ("bits", wintypes.WORD),
-                ("compression", wintypes.DWORD),
-                ("image_size", wintypes.DWORD),
-                ("x", wintypes.LONG),
-                ("y", wintypes.LONG),
-                ("used", wintypes.DWORD),
-                ("important", wintypes.DWORD),
-            ]
-
-        header = Header(
-            ctypes.sizeof(Header),
-            width,
-            -height,
-            1,
-            32,
-            0,
-            width * height * 4,
-            0,
-            0,
-            0,
-            0,
+        for row, y in enumerate(ys):
+            for column, x in enumerate(xs):
+                # Move only this isolated synthetic test window; no input or hotkeys.
+                if not user.SetWindowPos(
+                    hwnd, None, -x, -y, 0, 0, 0x0001 | 0x0010 | 0x0040
+                ):
+                    raise RuntimeError("Test window positioning failed.")
+                window.update()
+                time.sleep(0.1)
+                window.update()
+                image = ImageGrab.grab(
+                    bbox=(
+                        0,
+                        0,
+                        min(viewport_w, width - x),
+                        min(viewport_h, height - y),
+                    ),
+                    all_screens=True,
+                )
+                colored |= max(ImageStat.Stat(image).stddev) > 5
+                target = (
+                    path
+                    if len(xs) == len(ys) == 1
+                    else path.with_name(f"{path.stem}-tile-{row}-{column}.png")
+                )
+                image.save(target)
+                receipts.append(
+                    {
+                        "file": target.name,
+                        "window_offset": [x, y],
+                        "pixels": list(image.size),
+                    }
+                )
+        if not colored:
+            raise RuntimeError("Blank UI viewport screenshots.")
+        path.with_suffix(".capture.json").write_text(
+            json.dumps(
+                {
+                    "window": [width, height],
+                    "viewport": [viewport_w, viewport_h],
+                    "tiles": receipts,
+                    "unedited_native_screen_capture": True,
+                },
+                indent=2,
+            )
         )
-        pixels = ctypes.create_string_buffer(width * height * 4)
-        gdi.SelectObject(memory, previous)
-        if not gdi.GetDIBits(
-            memory, bitmap, 0, height, pixels, ctypes.byref(header), 0
-        ):
-            raise RuntimeError("Windows screenshot readback failed.")
-        image = Image.frombytes("RGB", (width, height), pixels.raw, "raw", "BGRX")
-        if max(ImageStat.Stat(image).stddev) < 5:
-            raise RuntimeError("Blank UI screenshot.")
-        image.save(path)
     finally:
-        gdi.SelectObject(memory, previous)
-        gdi.DeleteObject(bitmap)
-        gdi.DeleteDC(memory)
-        user.ReleaseDC(hwnd, dc)
+        user.SetWindowPos(
+            hwnd, None, rect.left, rect.top, 0, 0, 0x0001 | 0x0010 | 0x0040
+        )
+        window.update()
 
 
 def visible_controls_fit(window):
@@ -150,7 +141,7 @@ def run(directory, *, scales=(1, 1.5, 2)):
             app = ClipboardApp(root, data_dir=data, offline=True)
             try:
                 assert app.worker is None
-                root.geometry(f"{int(1120 * scale)}x{int(800 * scale)}+0+0")
+                root.geometry(f"{int(960 * scale)}x{int(720 * scale)}+0+0")
                 root.minsize(int(960 * scale), int(720 * scale))
                 macro = new_macro("Offline Windows editor demo", target=1)
                 macro["steps"] = [
