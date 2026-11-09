@@ -35,9 +35,22 @@ class StepDialog(tk.Toplevel):
         self.grab_set()
         original = sequence[index]
         fields = {}
+        numeric_widgets = {}
         body = ttk.Frame(self, padding=16)
         body.pack(fill="both", expand=True)
         kind = original["kind"]
+        varying = tk.BooleanVar(
+            value=original.get(
+                "varyingMouse" if kind == "moveMouse" else "varyingInterval"
+            )
+            is True
+        )
+        if kind in ("moveMouse", "repeatFor"):
+            ttk.Checkbutton(
+                body,
+                text="Vary movement" if kind == "moveMouse" else "Vary interval",
+                variable=varying,
+            ).pack(anchor="w", pady=(0, 8))
         text = None
         if kind in ("text", "template", "chord"):
             text = app.text_widget(body)
@@ -53,9 +66,9 @@ class StepDialog(tk.Toplevel):
                 )
             )
             fields[key] = value
-            ttk.Spinbox(row, textvariable=value, from_=low, to=high, width=10).pack(
-                side="right"
-            )
+            widget = ttk.Spinbox(row, textvariable=value, from_=low, to=high, width=10)
+            widget.pack(side="right")
+            numeric_widgets[key] = widget
 
         if kind == "delay":
             field("milliseconds", "Delay (ms)", 1, 30000, 250)
@@ -80,6 +93,26 @@ class StepDialog(tk.Toplevel):
                 ),
             ):
                 field(key, title, low, high, default)
+        pairs = (
+            {"mouseXMaximum": "mouseXMinimum", "mouseYMaximum": "mouseYMinimum"}
+            if kind == "moveMouse"
+            else {"mouseIntervalMaximumSeconds": "mouseIntervalSeconds"}
+            if kind == "repeatFor"
+            else {}
+        )
+
+        def ranges_changed(*_):
+            for maximum, minimum in pairs.items():
+                if not varying.get():
+                    fields[maximum].set(fields[minimum].get())
+                numeric_widgets[maximum].configure(
+                    state="normal" if varying.get() else "disabled"
+                )
+
+        for minimum in pairs.values():
+            fields[minimum].trace_add("write", ranges_changed)
+        varying.trace_add("write", ranges_changed)
+        ranges_changed()
         error = tk.StringVar()
         ttk.Label(body, textvariable=error, foreground="#ad3429", wraplength=490).pack(
             fill="x", pady=8
@@ -93,10 +126,10 @@ class StepDialog(tk.Toplevel):
                 for key, var in fields.items():
                     result[key] = int(var.get())
                 if kind == "moveMouse":
-                    result["varyingMouse"] = True
+                    result["varyingMouse"] = varying.get()
                     movement(result)
                 elif kind == "repeatFor":
-                    result["varyingInterval"] = True
+                    result["varyingInterval"] = varying.get()
                     options(result)
                 elif kind == "delay":
                     if not 1 <= result["milliseconds"] <= 30000:
@@ -114,7 +147,7 @@ class StepDialog(tk.Toplevel):
 
         row = ttk.Frame(body)
         row.pack(fill="x", side="bottom")
-        button(row, "Apply", save)
+        self.apply_button = button(row, "Apply", save)
         button(row, "Cancel", self.destroy)
 
 
@@ -363,6 +396,7 @@ class ReviewDialog(tk.Toplevel):
             value=any(s["kind"] in ("mouseJiggle", "repeatFor") for s in macro["steps"])
         )
         self.confirmed = tk.BooleanVar(value=False)
+        self.minimize = tk.BooleanVar(value=app.minimize.get())
         self.stored_name = tk.StringVar(value=macro["name"])
         outer = ttk.Frame(self, padding=16)
         outer.pack(fill="both", expand=True)
@@ -383,6 +417,12 @@ class ReviewDialog(tk.Toplevel):
         canvas.bind(
             "<Configure>", lambda event: canvas.itemconfigure(item, width=event.width)
         )
+
+        def wheel(event):
+            if event.widget.winfo_class() not in ("Text", "TCombobox", "TSpinbox"):
+                canvas.yview_scroll(-int(event.delta / 120), "units")
+
+        self.bind("<MouseWheel>", wheel)
         ttk.Label(
             body,
             text=f"{macro['name']} / {TARGETS[TARGET_IDS.index(macro['target'])]} / {LAYOUTS[LAYOUT_IDS.index(macro['layout'])]}",
@@ -427,17 +467,23 @@ class ReviewDialog(tk.Toplevel):
             ttk.Radiobutton(
                 row, text=title, variable=self.destination, value=value
             ).pack(side="left", padx=(0, 12))
-        ttk.Checkbutton(
+        self.continue_toggle = ttk.Checkbutton(
             body,
             text="Continue independently on Flipper after Bluetooth disconnects",
             variable=self.standalone,
-        ).pack(anchor="w")
+        )
+        self.continue_toggle.pack(anchor="w")
+        self.minimize_toggle = ttk.Checkbutton(
+            body,
+            text="Minimize this app after Flipper accepts the run",
+            variable=self.minimize,
+        )
+        self.minimize_toggle.pack(anchor="w")
         row = ttk.Frame(body)
         row.pack(fill="x", pady=5)
         ttk.Label(row, text="Saved name").pack(side="left")
-        ttk.Entry(row, textvariable=self.stored_name).pack(
-            side="left", fill="x", expand=True, padx=8
-        )
+        self.saved_name_entry = ttk.Entry(row, textvariable=self.stored_name)
+        self.saved_name_entry.pack(side="left", fill="x", expand=True, padx=8)
         ttk.Label(
             body,
             text="Match the USB target's keyboard layout. Shortcuts can affect other apps or the whole system. This app cannot restore focus. Stop on Flipper remains available.",
@@ -462,7 +508,7 @@ class ReviewDialog(tk.Toplevel):
         )
         button(row, "Refresh review", self.prepare)
         button(row, "Cancel", self.destroy)
-        for var in (self.destination, self.standalone, self.stored_name):
+        for var in (self.destination, self.standalone, self.stored_name, self.minimize):
             var.trace_add("write", self.prepare)
         self.prepare()
 
@@ -517,6 +563,15 @@ class ReviewDialog(tk.Toplevel):
 
     def update_run(self):
         self.model.confirmed = self.confirmed.get()
+        saving = self.destination.get() == "save"
+        self.saved_name_entry.configure(state="normal" if saving else "disabled")
+        self.continue_toggle.configure(state="disabled" if saving else "normal")
+        self.minimize_toggle.configure(state="disabled" if saving else "normal")
+        self.confirm_toggle.configure(
+            text="Store this reviewed plaintext snapshot on Flipper SD"
+            if saving
+            else "I reviewed the output and confirm the intended USB target field"
+        )
         self.run_button.configure(
             text="Save on Flipper" if self.destination.get() == "save" else "Run",
             state="normal"
@@ -541,6 +596,7 @@ class ReviewDialog(tk.Toplevel):
             else None
         )
         self.app.state = "sending"
+        self.app.minimize.set(self.minimize.get())
         self.app.save_preferences()
         self.app.worker.submit(
             self.app.worker.transport.transfer(

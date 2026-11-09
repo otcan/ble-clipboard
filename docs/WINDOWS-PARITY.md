@@ -26,6 +26,7 @@ installed-app replacement is authorized by this checklist.
 | Explicit desktop macro layouts retained | Macro model | Shared fixtures; UI synthetic library |
 | Fast/Slow/Variable/Custom preferences and saved-job pacing | Review/compiler/opcode 7 | Bounds/capability tests; C pause cancellation |
 | Expanded-output review, relevant edits invalidate consent | RunReview/dialog | Unit tests + offline UI suite |
+| Optional minimize-after-accept, no focus restoration claim | Run review/workspace | Explicit local setting; physical focus unverified |
 | No direct-send/global hook/clipboard watcher/replay | Workspace | No input automation in tests |
 | Actual local/remote versions, exact-tag asset availability/offline failure | Info & Companions | Metadata/release-response tests |
 | Portable x64 bundle, per-user installer, no external Python | Windows build | Windows CI gates; not locally validated on macOS |

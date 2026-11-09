@@ -12,7 +12,7 @@ from tkinter import font
 
 from PIL import ImageGrab, ImageStat
 
-from .app import ClipboardApp
+from .app import TITLES, ClipboardApp
 from .macros import new_macro, step
 
 
@@ -175,7 +175,7 @@ def run(directory, *, scales=(1, 1.5, 2)):
                 assert app.dirty
                 assert app.save_macro()
                 assert app.library.macros[-1]["name"] == "Edited offline macro"
-                app.kind.set("moveMouse")
+                app.kind.set(TITLES["moveMouse"])
                 app.add_step()
                 app.steps.selection_set("3")
                 app.move_step(-1)
@@ -247,7 +247,16 @@ def run(directory, *, scales=(1, 1.5, 2)):
                     root.update()
                     visible_controls_fit(dialog)
                     capture(dialog, directory / f"step-{kind}-{int(scale * 100)}.png")
-                    dialog.destroy()
+                    dialog.apply_button.invoke()
+                    if kind in ("moveMouse", "repeatFor"):
+                        assert (
+                            app.current["steps"][0].get(
+                                "varyingMouse"
+                                if kind == "moveMouse"
+                                else "varyingInterval"
+                            )
+                            is False
+                        )
                 parameter_window = parameters_dialog(app)
                 root.update()
                 visible_controls_fit(parameter_window)

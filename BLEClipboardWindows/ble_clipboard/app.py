@@ -174,6 +174,7 @@ class ClipboardApp:
         self.mode = tk.StringVar(value=choice("mode", (*PRESETS, "Custom"), "Fast"))
         self.pause = tk.StringVar(value=str(prefs.get("pause", 80)))
         self.variation = tk.StringVar(value=str(prefs.get("variation", 30)))
+        self.minimize = tk.BooleanVar(value=prefs.get("minimize") is True)
         self.status = tk.StringVar(
             value="Offline preview; Bluetooth disabled."
             if offline
@@ -477,6 +478,7 @@ class ClipboardApp:
             "mode": self.mode.get(),
             "pause": self.pause.get(),
             "variation": self.variation.get(),
+            "minimize": self.minimize.get(),
         }
         try:
             atomic_write(self.data_dir / "preferences.json", json.dumps(prefs).encode())
@@ -880,6 +882,8 @@ class ClipboardApp:
                 self.status.set(value)
             elif kind == "progress":
                 self.progress["value"] = value
+            elif kind == "accepted" and self.minimize.get() and not self.offline:
+                self.root.iconify()
             elif kind == "timer":
 
                 def duration(seconds):
