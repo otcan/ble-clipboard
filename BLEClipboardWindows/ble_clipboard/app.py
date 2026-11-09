@@ -134,6 +134,8 @@ class ClipboardApp:
         self.root.geometry(f"{int(1120 * self.scale)}x{int(800 * self.scale)}")
         self.root.minsize(int(960 * self.scale), int(720 * self.scale))
         self.root.protocol("WM_DELETE_WINDOW", self.close)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
         style = ttk.Style(root)
         if "vista" in style.theme_names():
             style.theme_use("vista")
@@ -194,7 +196,7 @@ class ClipboardApp:
         menu.add_command(label="Info & Companions", command=self.info)
         self.root.configure(menu=menu)
         header = ttk.Frame(self.root, padding=12)
-        header.pack(fill="x")
+        header.grid(row=0, column=0, sticky="ew")
         ttk.Label(header, text="BLE Clipboard", style="Heading.TLabel").pack(
             side="left", padx=(0, 18)
         )
@@ -212,7 +214,7 @@ class ClipboardApp:
             )
         button(header, "Keyboard", self.keyboard_dialog)
         panes = ttk.Panedwindow(self.root, orient="horizontal")
-        panes.pack(fill="both", expand=True, padx=12)
+        panes.grid(row=1, column=0, sticky="nsew", padx=12)
         sidebar = ttk.Frame(panes, width=220)
         panes.add(sidebar, weight=0)
         ttk.Entry(sidebar, textvariable=self.search, width=24).pack(
@@ -275,9 +277,13 @@ class ClipboardApp:
         self.steps.bind("<Double-1>", lambda _: self.edit_step())
         row = ttk.Frame(editor)
         row.pack(fill="x")
-        self.kind = tk.StringVar(value=KINDS[0])
+        self.kind = tk.StringVar(value=TITLES[KINDS[0]])
         ttk.Combobox(
-            row, textvariable=self.kind, values=KINDS, state="readonly", width=12
+            row,
+            textvariable=self.kind,
+            values=list(TITLES.values()),
+            state="readonly",
+            width=15,
         ).pack(side="left", padx=(0, 6))
         for title, callback in (
             ("Add", self.add_step),
@@ -294,7 +300,7 @@ class ClipboardApp:
         button(row, "Review & Run", lambda: self.open_review(True))
         button(row, "Send to Flipper", lambda: self.open_review(True, True))
         pacing = ttk.Frame(self.root, padding=(12, 10))
-        pacing.pack(fill="x")
+        pacing.grid(row=2, column=0, sticky="ew")
         ttk.Label(pacing, text="Typing").pack(side="left", padx=(0, 6))
         ttk.Combobox(
             pacing,
@@ -312,7 +318,7 @@ class ClipboardApp:
                 side="left"
             )
         footer = ttk.Frame(self.root, padding=(12, 0, 12, 12))
-        footer.pack(fill="x")
+        footer.grid(row=3, column=0, sticky="ew")
         ttk.Label(
             footer, textvariable=self.validation, foreground="#ad3429", wraplength=900
         ).pack(fill="x")
@@ -569,10 +575,14 @@ class ClipboardApp:
                 sequence = source[index].setdefault("children", [])
             elif source is not sequence:
                 sequence = source
-        if self.kind.get() == "repeatFor" and sequence is not self.current["steps"]:
+        kind = next(
+            (key for key, title in TITLES.items() if title == self.kind.get()),
+            self.kind.get(),
+        )
+        if kind == "repeatFor" and sequence is not self.current["steps"]:
             self.validation.set("Nested Repeat is not supported.")
             return
-        item = step(self.kind.get(), "PRIMARY+A" if self.kind.get() == "chord" else "")
+        item = step(kind, "PRIMARY+A" if kind == "chord" else "")
         if item["kind"] == "repeatFor":
             item["children"] = [step("moveMouse")]
         sequence.append(item)

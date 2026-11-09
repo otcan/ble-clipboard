@@ -170,6 +170,7 @@ def run(directory):
                 app.search.set("")
                 root.update()
                 visible_controls_fit(root)
+                assert app.stop_button.winfo_ismapped(), "Stop must remain visible"
                 capture(root, directory / f"editor-{int(scale * 100)}.png")
                 app.open_review()
                 root.update()
@@ -184,6 +185,9 @@ def run(directory):
                 review.prepare()
                 assert review.model.compiled.program[6] == 7
                 visible_controls_fit(review)
+                assert review.run_button.winfo_ismapped(), (
+                    "Run confirmation must remain visible"
+                )
                 capture(review, directory / f"review-{int(scale * 100)}.png")
                 review.destroy()
                 app.review = None
@@ -201,6 +205,9 @@ def run(directory):
                 root.geometry(f"{int(960 * scale)}x{int(720 * scale)}+0+0")
                 root.update()
                 visible_controls_fit(root)
+                assert app.stop_button.winfo_ismapped(), (
+                    "Stop must remain visible at minimum size"
+                )
                 capture(root, directory / f"minimum-{int(scale * 100)}.png")
                 results.append(
                     {
