@@ -263,26 +263,38 @@ class ClipboardApp:
         )
         self.tabs.add(quick, text="Quick Paste")
         self.tabs.add(editor, text="Macro editor")
+        quick.columnconfigure(0, weight=1)
+        quick.rowconfigure(1, weight=1)
+        editor.columnconfigure(0, weight=1)
+        editor.rowconfigure(3, weight=1)
         row = ttk.Frame(quick)
-        row.pack(fill="x", pady=(0, 8))
+        row.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         button(row, "Load Clipboard", self.load_clipboard)
         button(row, "Open Text File", self.open_file)
         button(row, "Clear", lambda: self.replace_text(""))
-        self.quick_text = self.text_widget(quick, height=12)
+        self.quick_text = self.text_widget(quick, height=12, grid_row=1)
         self.quick_text.bind("<<Modified>>", self.quick_changed)
         for control in self.target_controls(
-            quick, self.quick_target, self.quick_layout
+            quick, self.quick_target, self.quick_layout, grid_row=2
         ):
             control.bind("<<ComboboxSelected>>", self.quick_keyboard_changed)
         row = ttk.Frame(quick)
-        row.pack(fill="x", pady=10)
-        button(row, "Review & Run", lambda: self.open_review(False))
+        row.grid(row=3, column=0, sticky="ew", pady=10)
+        self.quick_run_button = button(
+            row, "Review & Run", lambda: self.open_review(False)
+        )
         button(row, "Send to Flipper", lambda: self.open_review(False, True))
-        ttk.Label(editor, text="Name").pack(anchor="w")
-        ttk.Entry(editor, textvariable=self.name).pack(fill="x", pady=(3, 6))
-        self.target_controls(editor, self.target, self.layout)
+        ttk.Label(editor, text="Name").grid(row=0, column=0, sticky="w")
+        ttk.Entry(editor, textvariable=self.name).grid(
+            row=1, column=0, sticky="ew", pady=(3, 6)
+        )
+        self.target_controls(editor, self.target, self.layout, grid_row=2)
+        table = ttk.Frame(editor)
+        table.grid(row=3, column=0, sticky="nsew", pady=(8, 6))
+        table.columnconfigure(0, weight=1)
+        table.rowconfigure(0, weight=1)
         self.steps = ttk.Treeview(
-            editor,
+            table,
             columns=("action", "value"),
             show="tree headings",
             selectmode="browse",
@@ -294,10 +306,15 @@ class ClipboardApp:
         self.steps.column("action", width=int(145 * self.scale), stretch=False)
         self.steps.heading("value", text="Value / options")
         self.steps.column("value", width=int(250 * self.scale))
-        self.steps.pack(fill="both", expand=True, pady=(8, 6))
+        self.steps.grid(row=0, column=0, sticky="nsew")
+        vertical = ttk.Scrollbar(table, command=self.steps.yview)
+        horizontal = ttk.Scrollbar(table, orient="horizontal", command=self.steps.xview)
+        self.steps.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+        vertical.grid(row=0, column=1, sticky="ns")
+        horizontal.grid(row=1, column=0, sticky="ew")
         self.steps.bind("<Double-1>", lambda _: self.edit_step())
         row = ttk.Frame(editor)
-        row.pack(fill="x")
+        row.grid(row=4, column=0, sticky="ew")
         self.kind = tk.StringVar(value=TITLES[KINDS[0]])
         ttk.Combobox(
             row,
@@ -315,7 +332,7 @@ class ClipboardApp:
         ):
             button(row, title, callback)
         row = ttk.Frame(editor)
-        row.pack(fill="x", pady=10)
+        row.grid(row=5, column=0, sticky="ew", pady=10)
         button(row, "Parameters", self.parameters_dialog)
         button(row, "Save macro", self.save_macro)
         button(row, "Review & Run", lambda: self.open_review(True))
@@ -360,9 +377,12 @@ class ClipboardApp:
             self.scan_button.configure(state="disabled")
 
     @staticmethod
-    def text_widget(parent, height=8):
+    def text_widget(parent, height=8, grid_row=None):
         row = ttk.Frame(parent)
-        row.pack(fill="both", expand=True)
+        if grid_row is None:
+            row.pack(fill="both", expand=True)
+        else:
+            row.grid(row=grid_row, column=0, sticky="nsew")
         text = tk.Text(
             row,
             wrap="word",
@@ -380,9 +400,12 @@ class ClipboardApp:
         return text
 
     @staticmethod
-    def target_controls(parent, target, layout):
+    def target_controls(parent, target, layout, grid_row=None):
         row = ttk.Frame(parent)
-        row.pack(fill="x", pady=6)
+        if grid_row is None:
+            row.pack(fill="x", pady=6)
+        else:
+            row.grid(row=grid_row, column=0, sticky="ew", pady=6)
         ttk.Label(row, text="USB target OS").pack(side="left", padx=(0, 5))
         target_picker = ttk.Combobox(
             row, textvariable=target, values=TARGETS, state="readonly", width=9

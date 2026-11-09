@@ -190,6 +190,14 @@ def run(directory, *, scales=(1, 1.5, 2)):
                 visible_controls_fit(root)
                 assert app.stop_button.winfo_ismapped(), "Stop must remain visible"
                 capture(root, directory / f"editor-{int(scale * 100)}.png")
+                app.replace_text("Offline Quick Paste preview")
+                app.tabs.select(0)
+                root.update()
+                visible_controls_fit(root)
+                assert app.quick_run_button.winfo_ismapped()
+                capture(root, directory / f"quick-paste-{int(scale * 100)}.png")
+                app.tabs.select(1)
+                root.update()
                 app.open_review()
                 root.update()
                 review = app.review
