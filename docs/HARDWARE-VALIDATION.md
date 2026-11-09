@@ -2,7 +2,7 @@
 
 ## 0.5.4 - Matching Desktops and Keyboard Settings (Unreleased)
 
-On 2026-11-09, local checks passed all 53 Swift tests, 21 Python compiler/library/
+On 2026-11-09, local checks passed all 53 Swift tests, 22 Python compiler/library/
 fake-BLE tests, AddressSanitizer/UBSan C checks, identical shared Swift/Python
 compiler golden bytes and complete wire fixtures executed by the C engine.
 New timing checks cover bounds, capability rejection before upload, cancellation
@@ -13,7 +13,10 @@ The Mac universal and API 88.2 FAP builds pass without device access.
 Windows UI checks run on a genuine Windows x64 CI runner with synthetic libraries,
 no BLE worker, no clipboard read and no input output. Retained screenshots cover
 editor, review, error and minimum-size states at 100/150/200% Tk scaling. These
-are application renders, not physical monitor/Bluetooth certification. Installer
+are application renders, not physical monitor/Bluetooth certification. On the
+runner's 1024x768 display, larger windows use overlapping, unedited viewport
+captures with pixel-offset receipts; they are not composited or presented as a
+single full-screen capture. Installer
 and frozen-app validation are separate CI gates; only a successful final run
 certifies the corresponding source/artifact set. A previous shipped Windows
 binary does not exist, so reinstall plus legacy-library migration are the upgrade

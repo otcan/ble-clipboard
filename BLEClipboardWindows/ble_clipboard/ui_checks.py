@@ -34,9 +34,18 @@ def capture(window, path):
     rect = wintypes.RECT()
     user.GetWindowRect(hwnd, ctypes.byref(rect))
     width, height = rect.right - rect.left, rect.bottom - rect.top
-    viewport_w, viewport_h = window.winfo_screenwidth(), window.winfo_screenheight()
-    xs = list(range(0, width, viewport_w))
-    ys = list(range(0, height, viewport_h))
+    work = wintypes.RECT()
+    if not user.SystemParametersInfoW(0x0030, 0, ctypes.byref(work), 0):
+        raise RuntimeError("CI work area unavailable.")
+    viewport_w, viewport_h = work.right - work.left, work.bottom - work.top
+
+    def positions(size, viewport):
+        result = [0]
+        while result[-1] + viewport < size:
+            result.append(min(result[-1] + viewport - 96, size - viewport))
+        return result
+
+    xs, ys = positions(width, viewport_w), positions(height, viewport_h)
     colored = False
     receipts = []
     try:
@@ -44,7 +53,13 @@ def capture(window, path):
             for column, x in enumerate(xs):
                 # Move only this isolated synthetic test window; no input or hotkeys.
                 if not user.SetWindowPos(
-                    hwnd, None, -x, -y, 0, 0, 0x0001 | 0x0010 | 0x0040
+                    hwnd,
+                    None,
+                    work.left - x,
+                    work.top - y,
+                    0,
+                    0,
+                    0x0001 | 0x0010 | 0x0040,
                 ):
                     raise RuntimeError("Test window positioning failed.")
                 window.update()
@@ -52,10 +67,10 @@ def capture(window, path):
                 window.update()
                 image = ImageGrab.grab(
                     bbox=(
-                        0,
-                        0,
-                        min(viewport_w, width - x),
-                        min(viewport_h, height - y),
+                        work.left,
+                        work.top,
+                        work.left + min(viewport_w, width - x),
+                        work.top + min(viewport_h, height - y),
                     ),
                     all_screens=True,
                 )
@@ -141,8 +156,8 @@ def run(directory, *, scales=(1, 1.5, 2)):
             app = ClipboardApp(root, data_dir=data, offline=True)
             try:
                 assert app.worker is None
-                root.geometry(f"{int(960 * scale)}x{int(720 * scale)}+0+0")
-                root.minsize(int(960 * scale), int(720 * scale))
+                root.geometry(f"{int(960 * scale)}x{int(640 * scale)}+0+0")
+                root.minsize(int(960 * scale), int(640 * scale))
                 macro = new_macro("Offline Windows editor demo", target=1)
                 macro["steps"] = [
                     step("text", "echo Hello from BLE Clipboard"),
@@ -174,7 +189,7 @@ def run(directory, *, scales=(1, 1.5, 2)):
                 app.open_review()
                 root.update()
                 review = app.review
-                review.geometry(f"{int(760 * scale)}x{int(730 * scale)}+0+0")
+                review.geometry(f"{int(760 * scale)}x{int(660 * scale)}+0+0")
                 root.update()
                 assert review.model.compiled and review.run_button.instate(["disabled"])
                 review.confirm_toggle.invoke()
@@ -201,7 +216,7 @@ def run(directory, *, scales=(1, 1.5, 2)):
                 capture(app.review, directory / f"error-{int(scale * 100)}.png")
                 app.review.destroy()
                 app.review = None
-                root.geometry(f"{int(960 * scale)}x{int(720 * scale)}+0+0")
+                root.geometry(f"{int(960 * scale)}x{int(640 * scale)}+0+0")
                 root.update()
                 visible_controls_fit(root)
                 assert app.stop_button.winfo_ismapped(), (

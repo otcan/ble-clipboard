@@ -140,7 +140,7 @@ class ClipboardApp:
         )
         self.scale = float(root.tk.call("tk", "scaling")) * 72 / 96
         self.root.geometry(f"{int(1120 * self.scale)}x{int(800 * self.scale)}")
-        self.root.minsize(int(960 * self.scale), int(720 * self.scale))
+        self.root.minsize(int(960 * self.scale), int(640 * self.scale))
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
