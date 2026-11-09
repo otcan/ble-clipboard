@@ -76,11 +76,28 @@ def generate():
             )
     python_license = Path(sys.base_prefix) / "LICENSE.txt"
     notices += ["\n--- Python ---\n", python_license.read_text()]
-    for runtime in ("tcl8.6", "tk8.6"):
-        license_file = Path(sys.base_prefix) / "tcl" / runtime / "license.terms"
-        if not license_file.exists():
-            raise ValueError(f"Tcl/Tk license missing: {license_file}")
-        notices += [f"\n--- {runtime} ---\n", license_file.read_text()]
+    import tkinter
+
+    root = tkinter.Tk()
+    root.withdraw()
+    try:
+        for runtime in ("Tcl", "Tk"):
+            patch = str(root.tk.call("package", "require", runtime))
+            if patch != "8.6.15":
+                raise ValueError(
+                    f"Review licenses for changed {runtime} runtime: {patch}"
+                )
+            license_file = (
+                ROOT
+                / "BLEClipboardWindows/resources"
+                / f"{runtime.upper()}-LICENSE.txt"
+            )
+            notices += [
+                f"\n--- {runtime} {patch} (CPython source-deps) ---\n",
+                license_file.read_text(),
+            ]
+    finally:
+        root.destroy()
     (out / "THIRD-PARTY.txt").write_text("\n".join(notices), encoding="utf-8")
 
 

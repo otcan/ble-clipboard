@@ -196,11 +196,27 @@ def keyboard_dialog(app):
 
     button(row, "Save on Flipper", apply)
     if not app.offline:
-        button(
-            row,
-            "Refresh",
-            lambda: app.worker.submit(app.worker.transport.get_keyboard()),
-        )
+
+        def refresh():
+            future = app.worker.submit(app.worker.transport.get_keyboard())
+
+            def result():
+                nonlocal settings
+                if not window.winfo_exists():
+                    return
+                if not future.done():
+                    window.after(100, result)
+                    return
+                if future.cancelled() or future.exception():
+                    return
+                settings = future.result()
+                target.set(TARGETS[settings.target])
+                layout.set(LAYOUTS[settings.layout])
+                saved.set(settings.use_saved)
+
+            window.after(100, result)
+
+        button(row, "Refresh", refresh)
 
 
 def info_dialog(app):

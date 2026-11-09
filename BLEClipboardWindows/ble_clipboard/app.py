@@ -22,7 +22,15 @@ from .macros import (
     step,
     validate,
 )
-from .protocol import LAYOUT_IDS, LAYOUTS, PRESETS, TARGET_IDS, TARGETS, Timing
+from .protocol import (
+    LAYOUT_IDS,
+    LAYOUTS,
+    PRESETS,
+    TARGET_IDS,
+    TARGETS,
+    KeyboardSettings,
+    Timing,
+)
 from .release import version
 from .transport import ClipboardTransport
 
@@ -252,7 +260,10 @@ class ClipboardApp:
         button(row, "Clear", lambda: self.replace_text(""))
         self.quick_text = self.text_widget(quick, height=12)
         self.quick_text.bind("<<Modified>>", self.quick_changed)
-        self.target_controls(quick, self.quick_target, self.quick_layout)
+        for control in self.target_controls(
+            quick, self.quick_target, self.quick_layout
+        ):
+            control.bind("<<ComboboxSelected>>", self.quick_keyboard_changed)
         row = ttk.Frame(quick)
         row.pack(fill="x", pady=10)
         button(row, "Review & Run", lambda: self.open_review(False))
@@ -363,13 +374,38 @@ class ClipboardApp:
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=6)
         ttk.Label(row, text="USB target OS").pack(side="left", padx=(0, 5))
-        ttk.Combobox(
+        target_picker = ttk.Combobox(
             row, textvariable=target, values=TARGETS, state="readonly", width=9
-        ).pack(side="left")
+        )
+        target_picker.pack(side="left")
         ttk.Label(row, text="Keyboard").pack(side="left", padx=(12, 5))
-        ttk.Combobox(
+        layout_picker = ttk.Combobox(
             row, textvariable=layout, values=LAYOUTS, state="readonly", width=24
-        ).pack(side="left")
+        )
+        layout_picker.pack(side="left")
+        return target_picker, layout_picker
+
+    def quick_keyboard_changed(self, _=None):
+        if self.offline or self.state == "disconnected":
+            return
+        if self.state != "ready" or self.keyboard is None:
+            self.status.set(
+                "Keyboard change unavailable while busy or unsynced. Refresh while idle."
+            )
+            if self.keyboard:
+                self.quick_layout.set(LAYOUTS[self.keyboard.layout])
+                self.quick_target.set(TARGETS[self.keyboard.target])
+            return
+        self.worker.submit(
+            self.worker.transport.set_keyboard(
+                KeyboardSettings(
+                    LAYOUTS.index(self.quick_layout.get()),
+                    TARGETS.index(self.quick_target.get()),
+                    True,
+                    self.keyboard.revision,
+                )
+            )
+        )
 
     def invalidate(self):
         if self.review and self.review.winfo_exists():
@@ -477,6 +513,12 @@ class ClipboardApp:
     def create_macro(self, macro=None):
         if not self.discard():
             return
+        if macro:
+            macro = deepcopy(macro)
+            macro.update(
+                layout=LAYOUT_IDS[LAYOUTS.index(self.quick_layout.get())],
+                target=TARGET_IDS[TARGETS.index(self.quick_target.get())],
+            )
         macro = macro or new_macro(
             layout=LAYOUTS.index(self.quick_layout.get()),
             target=TARGETS.index(self.quick_target.get()),
