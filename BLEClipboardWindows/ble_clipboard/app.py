@@ -130,8 +130,9 @@ class ClipboardApp:
             f"BLE Clipboard {version()} - Windows beta"
             + (" - Offline preview" if offline else "")
         )
-        self.root.geometry("1120x800")
-        self.root.minsize(960, 720)
+        self.scale = float(root.tk.call("tk", "scaling")) * 72 / 96
+        self.root.geometry(f"{int(1120 * self.scale)}x{int(800 * self.scale)}")
+        self.root.minsize(int(960 * self.scale), int(720 * self.scale))
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         style = ttk.Style(root)
         if "vista" in style.theme_names():

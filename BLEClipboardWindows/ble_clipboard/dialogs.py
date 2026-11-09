@@ -284,8 +284,9 @@ class ReviewDialog(tk.Toplevel):
         self.app, self.macro = app, deepcopy(macro)
         self.model = RunReview()
         self.title("Review expanded output")
-        self.geometry("760x730")
-        self.minsize(660, 650)
+        self.maxsize(6000, 4000)
+        self.geometry(f"{int(760 * app.scale)}x{int(730 * app.scale)}")
+        self.minsize(int(660 * app.scale), int(650 * app.scale))
         self.transient(app.root)
         self.grab_set()
         self.date = datetime.now(timezone.utc)
@@ -295,8 +296,25 @@ class ReviewDialog(tk.Toplevel):
         )
         self.confirmed = tk.BooleanVar(value=False)
         self.stored_name = tk.StringVar(value=macro["name"])
-        body = ttk.Frame(self, padding=16)
-        body.pack(fill="both", expand=True)
+        outer = ttk.Frame(self, padding=16)
+        outer.pack(fill="both", expand=True)
+        footer = ttk.Frame(outer)
+        footer.pack(side="bottom", fill="x")
+        viewport = ttk.Frame(outer)
+        viewport.pack(fill="both", expand=True)
+        canvas = tk.Canvas(viewport, highlightthickness=0)
+        scroll = ttk.Scrollbar(viewport, command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        body = ttk.Frame(canvas)
+        item = canvas.create_window(0, 0, window=body, anchor="nw")
+        body.bind(
+            "<Configure>", lambda _: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        canvas.bind(
+            "<Configure>", lambda event: canvas.itemconfigure(item, width=event.width)
+        )
         ttk.Label(
             body,
             text=f"{macro['name']} / {TARGETS[TARGET_IDS.index(macro['target'])]} / {LAYOUTS[LAYOUT_IDS.index(macro['layout'])]}",
@@ -357,16 +375,16 @@ class ReviewDialog(tk.Toplevel):
         ).pack(fill="x", pady=8)
         self.error = tk.StringVar()
         ttk.Label(
-            body, textvariable=self.error, foreground="#ad3429", wraplength=700
+            footer, textvariable=self.error, foreground="#ad3429", wraplength=700
         ).pack(fill="x")
         self.confirm_toggle = ttk.Checkbutton(
-            body,
+            footer,
             text="I reviewed the output and confirm the USB target / SD snapshot",
             variable=self.confirmed,
             command=self.update_run,
         )
         self.confirm_toggle.pack(anchor="w", pady=8)
-        row = ttk.Frame(body)
+        row = ttk.Frame(footer)
         row.pack(fill="x")
         self.run_button = button(
             row, "Save on Flipper" if save else "Run", self.execute, state="disabled"
