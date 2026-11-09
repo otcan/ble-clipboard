@@ -57,10 +57,45 @@ def checksums(directory, version, *, verify=False):
         temporary.replace(file)
 
 
+def verify_windows(directory, version, revision):
+    directory = Path(directory)
+    if (directory / "SOURCE-COMMIT.txt").read_text(
+        encoding="utf-8-sig"
+    ).strip() != revision:
+        raise ValueError(
+            "Windows artifacts are not from this reviewed source revision."
+        )
+    folder = directory / f"v{version}"
+    expected_names = {
+        f"BLE-Clipboard-{version}-windows-x64-setup.exe",
+        f"BLE-Clipboard-{version}-windows-x64-portable.zip",
+    }
+    lines = (folder / "SHA256SUMS-windows.txt").read_text(encoding="ascii").splitlines()
+    values = {}
+    for line in lines:
+        sha, separator, name = line.partition("  ")
+        if (
+            not separator
+            or not re.fullmatch(r"[0-9a-f]{64}", sha)
+            or name in values
+            or name not in expected_names
+        ):
+            raise ValueError("Invalid Windows build checksum receipt.")
+        values[name] = sha
+    if values.keys() != expected_names or any(
+        digest(folder / name) != sha for name, sha in values.items()
+    ):
+        raise ValueError("Windows build payloads differ from their CI receipt.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("directory", type=Path)
     parser.add_argument("version")
     parser.add_argument("--verify", action="store_true")
+    parser.add_argument("--windows-revision")
     args = parser.parse_args()
-    checksums(args.directory, args.version, verify=args.verify)
+    if args.windows_revision:
+        verify_windows(args.directory, args.version, args.windows_revision)
+    else:
+        checksums(args.directory, args.version, verify=args.verify)

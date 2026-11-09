@@ -8,7 +8,7 @@ from unittest.mock import patch
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
 import notarize_candidate
-from release_assets import checksums, digest, hashes, payloads
+from release_assets import checksums, digest, hashes, payloads, verify_windows
 
 
 class ReleaseTests(unittest.TestCase):
@@ -48,6 +48,20 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(
             [call.args[:2] for call in run.call_args_list], [("git", "rev-parse")]
         )
+
+    def test_windows_receipt_requires_matching_source_and_both_payloads(self):
+        (self.root / "dist/SOURCE-COMMIT.txt").write_bytes(b"reviewed\r\n")
+        names = [name for name in payloads("0.5.4") if "-windows-x64-" in name]
+        receipt = self.out / "SHA256SUMS-windows.txt"
+        receipt.write_bytes(
+            "".join(f"{digest(self.out / name)}  {name}\r\n" for name in names).encode()
+        )
+        verify_windows(self.root / "dist", "0.5.4", "reviewed")
+        with self.assertRaises(ValueError):
+            verify_windows(self.root / "dist", "0.5.4", "another-revision")
+        (self.out / names[0]).write_bytes(b"stale")
+        with self.assertRaises(ValueError):
+            verify_windows(self.root / "dist", "0.5.4", "reviewed")
 
     def test_existing_submission_only_polls_no_build_or_resubmit(self):
         logs = self.root / "dist/notary-logs/v0.5.4"

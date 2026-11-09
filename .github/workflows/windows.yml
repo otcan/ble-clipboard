@@ -45,6 +45,10 @@ jobs:
           name: ${{ inputs.artifact-name || 'windows-x64-beta' }}
           path: |
             BLEClipboardWindows/dist/v*/
-            BLEClipboardWindows/dist/ui-checks/
             BLEClipboardWindows/dist/SOURCE-COMMIT.txt
             BLEClipboardWindows/dist/BUILD-DEPENDENCIES.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.artifact-name || 'windows-x64-beta' }}-ui
+          path: BLEClipboardWindows/dist/ui-checks/

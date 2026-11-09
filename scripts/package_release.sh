@@ -16,9 +16,7 @@ version=${1:-$(<"$root/VERSION")}
 (cd "$root/BluetoothClipboard" && shasum -a 256 -c dist/BUILD-SOURCE-SHA256SUMS.txt)
 out="$root/dist/v$version"
 windows="$root/BLEClipboardWindows/dist/v$version"
-[[ "$(tr -d '\r\n' < "$root/BLEClipboardWindows/dist/SOURCE-COMMIT.txt")" == "$(git -C "$root" rev-parse HEAD)" ]] || {
-    print -u2 "Windows artifacts are not from this reviewed source revision."; exit 1
-}
+"${PYTHON:-python3}" "$root/scripts/release_assets.py" "$root/BLEClipboardWindows/dist" "$version" --windows-revision "$(git -C "$root" rev-parse HEAD)"
 for name in "BLE-Clipboard-$version-windows-x64-setup.exe" "BLE-Clipboard-$version-windows-x64-portable.zip" WINDOWS-THIRD-PARTY.txt; do
     [[ -s "$windows/$name" ]] || { print -u2 "Missing reviewed Windows artifact: $name"; exit 1; }
 done
