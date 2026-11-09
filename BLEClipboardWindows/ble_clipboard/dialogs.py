@@ -444,9 +444,10 @@ class ReviewDialog(tk.Toplevel):
             wraplength=700,
         ).pack(fill="x", pady=8)
         self.error = tk.StringVar()
-        ttk.Label(
+        self.error_label = ttk.Label(
             footer, textvariable=self.error, foreground="#ad3429", wraplength=700
-        ).pack(fill="x")
+        )
+        self.error_label.pack(fill="x")
         self.confirm_toggle = ttk.Checkbutton(
             footer,
             text="I reviewed the output and confirm the USB target / SD snapshot",
@@ -504,9 +505,11 @@ class ReviewDialog(tk.Toplevel):
                 f"{len(compiled.program):,} compiled bytes"
                 + (" / Offline preview; output disabled" if self.app.offline else "")
             )
+            self.error_label.configure(foreground="#5c6269")
         except ValueError as error:
             self.model.invalidate()
             self.error.set(str(error))
+            self.error_label.configure(foreground="#ad3429")
             self.preview.configure(state="normal")
             self.preview.delete("1.0", "end")
             self.preview.configure(state="disabled")

@@ -388,6 +388,16 @@ class ClipboardTransport:
             raise ValueError("Choose a supported USB target OS.")
         if len(program) < 6 or not program.startswith(b"BCM4"):
             raise ValueError("Invalid compiled program.")
+        timing.validate()
+        paced = len(program) >= 7 and program[6] == 7
+        if paced and (
+            len(program) < 11
+            or struct.unpack_from("<HH", program, 7)
+            != (timing.pause_ms, timing.variation_ms)
+        ):
+            raise ValueError("Compiled timing differs from the reviewed options.")
+        if not paced and timing != Timing():
+            raise ValueError("Compiled timing record is missing.")
         if self._pending is not None:
             raise RuntimeError("Keyboard or metadata request is pending.")
         saved_payload = b""
@@ -395,8 +405,8 @@ class ClipboardTransport:
             sid, name = saved
             saved_payload = saved_descriptor(sid, name)
         if len(program) > self._capacity:
-            raise ValueError("Text exceeds this Flipper's capacity.")
-        if timing != Timing() and not self._capabilities & 128:
+            raise ValueError("Compiled job exceeds this Flipper's capacity.")
+        if paced and not self._capabilities & 128:
             raise ValueError(
                 "Update the Flipper companion for slower or variable typing, or choose Fast."
             )
@@ -409,7 +419,7 @@ class ClipboardTransport:
         self._done = asyncio.get_running_loop().create_future()
         self.emit("state", "sending")
         self.emit("progress", 0)
-        self.emit("status", "Uploading and verifying text. USB output has not started.")
+        self.emit("status", "Uploading and verifying job. USB output has not started.")
         try:
             header = struct.pack(
                 "<IBBIIB",

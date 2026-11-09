@@ -65,14 +65,18 @@ def capture(window, path):
                 window.update()
                 time.sleep(0.1)
                 window.update()
-                image = ImageGrab.grab(
-                    bbox=(
-                        work.left,
-                        work.top,
-                        work.left + min(viewport_w, width - x),
-                        work.top + min(viewport_h, height - y),
-                    ),
-                    all_screens=True,
+                image = (
+                    ImageGrab.grab(window=hwnd)
+                    if len(xs) == len(ys) == 1
+                    else ImageGrab.grab(
+                        bbox=(
+                            work.left,
+                            work.top,
+                            work.left + min(viewport_w, width - x),
+                            work.top + min(viewport_h, height - y),
+                        ),
+                        all_screens=True,
+                    )
                 )
                 colored |= max(ImageStat.Stat(image).stddev) > 5
                 target = (

@@ -3,7 +3,7 @@ import struct
 import unittest
 from types import SimpleNamespace
 
-from ble_clipboard.macros import compile_macro, new_macro, step
+from ble_clipboard.macros import CompiledMacro, compile_macro, new_macro, step
 from ble_clipboard.protocol import (
     HELLO,
     RX_UUID,
@@ -229,6 +229,10 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         before = list(self.client.frames)
         with self.assertRaisesRegex(ValueError, "Update the Flipper"):
             await self.transport.send("Hello", 0, Timing(80))
+        self.assertEqual(self.client.frames, before)
+        forged = CompiledMacro(compile_text("Hello", 0, Timing(80)), (), 0, 0, Timing())
+        with self.assertRaisesRegex(ValueError, "differs from the reviewed"):
+            await self.transport.transfer(forged)
         self.assertEqual(self.client.frames, before)
         await self.transport.send("Hello", 0, Timing())
 
