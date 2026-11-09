@@ -72,6 +72,16 @@ class AsyncWorker:
                 pass
             except Exception as error:
                 self.events.put(("error", str(error) or type(error).__name__))
+                self.events.put(
+                    (
+                        "state",
+                        "sending"
+                        if self.transport.busy
+                        else "ready"
+                        if self.transport.ready
+                        else "disconnected",
+                    )
+                )
 
         future.add_done_callback(finished)
         return future

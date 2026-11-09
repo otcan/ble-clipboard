@@ -164,7 +164,7 @@ def run(directory):
                 assert app.current["steps"][2]["kind"] == "moveMouse"
                 app.remove_step()
                 assert len(app.current["steps"]) == 3
-                app.search.set("clipboard")
+                app.search.set("no-such-synthetic-macro")
                 root.update()
                 assert not app.visible
                 app.search.set("")
