@@ -7,6 +7,7 @@ import tempfile
 import tkinter as tk
 from ctypes import wintypes
 from pathlib import Path
+from tkinter import font
 
 from PIL import Image, ImageStat
 
@@ -44,6 +45,10 @@ def capture(window, path):
     rect = wintypes.RECT()
     user.GetWindowRect(hwnd, ctypes.byref(rect))
     width, height = rect.right - rect.left, rect.bottom - rect.top
+    if width > window.winfo_screenwidth() or height > window.winfo_screenheight():
+        raise RuntimeError(
+            f"CI display too small for complete screenshot: {width}x{height} on {window.winfo_screenwidth()}x{window.winfo_screenheight()}"
+        )
     dc = user.GetWindowDC(hwnd)
     memory = gdi.CreateCompatibleDC(dc)
     bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
@@ -128,16 +133,19 @@ def visible_controls_fit(window):
     inspect(window)
 
 
-def run(directory):
+def run(directory, *, scales=(1, 1.5, 2)):
     if sys.platform != "win32":
         raise RuntimeError("Genuine Windows UI checks must run on Windows.")
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     results = []
-    for scale in (1, 1.5, 2):
+    for scale in scales:
         with tempfile.TemporaryDirectory() as data:
             root = tk.Tk()
             root.tk.call("tk", "scaling", 96 / 72 * scale)
+            for name in font.names(root):
+                named = font.nametofont(name, root=root)
+                named.configure(size=named.cget("size"))
             root.maxsize(6000, 4000)
             app = ClipboardApp(root, data_dir=data, offline=True)
             try:
@@ -209,6 +217,42 @@ def run(directory):
                     "Stop must remain visible at minimum size"
                 )
                 capture(root, directory / f"minimum-{int(scale * 100)}.png")
+                from .dialogs import StepDialog, parameters_dialog
+
+                for kind in ("text", "delay", "moveMouse", "repeatFor"):
+                    item = step(kind, "Offline edit" if kind == "text" else "")
+                    if kind == "repeatFor":
+                        item["children"] = [step("moveMouse")]
+                    app.current["steps"] = [item]
+                    app.refresh_steps()
+                    dialog = StepDialog(app, app.current["steps"], 0)
+                    root.update()
+                    visible_controls_fit(dialog)
+                    capture(dialog, directory / f"step-{kind}-{int(scale * 100)}.png")
+                    dialog.destroy()
+                parameter_window = parameters_dialog(app)
+                root.update()
+                visible_controls_fit(parameter_window)
+                capture(
+                    parameter_window, directory / f"parameters-{int(scale * 100)}.png"
+                )
+                parameter_window.destroy()
+                crowded = new_macro("Many parameters", target=1)
+                crowded["parameters"] = [
+                    {"id": f"field{i}", "label": f"Parameter {i}"} for i in range(32)
+                ]
+                crowded["steps"] = [step("template", "Value: {{field0}}")]
+                app.mode.set("Fast")
+                app.load_macro(crowded)
+                app.open_review()
+                root.update()
+                visible_controls_fit(app.review)
+                assert app.review.run_button.winfo_ismapped()
+                capture(
+                    app.review, directory / f"many-parameters-{int(scale * 100)}.png"
+                )
+                app.review.destroy()
+                app.review = None
                 results.append(
                     {
                         "scale": scale,
@@ -216,6 +260,8 @@ def run(directory):
                         "review_invalidation": True,
                         "errors": True,
                         "minimum": True,
+                        "step_dialogs": True,
+                        "parameters": True,
                         "ble_disabled": True,
                     }
                 )
@@ -223,4 +269,7 @@ def run(directory):
                 app.dirty = False
                 app.state = "disconnected"
                 app.close()
-    (directory / "results.json").write_text(json.dumps(results, indent=2))
+    for result in results:
+        (directory / f"results-{int(result['scale'] * 100)}.json").write_text(
+            json.dumps(result, indent=2)
+        )

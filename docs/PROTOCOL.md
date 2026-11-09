@@ -62,8 +62,10 @@ Turkish Q uses the built-in QWERTY-PC map.
 
 BEGIN flags: 0 normal run, 1 explicitly standalone run, 2 save-only. Other values
 are rejected. Save-only jobs cannot EXECUTE; normal jobs cannot SAVE. Capabilities
-is 127 (legacy mouse=1, saved programs=2, standalone=4, Move Mouse=8, Repeat=16,
-optional companion info=32, optional keyboard sync=64). The client requires only the first five bits. If bit
+is 255 (legacy mouse=1, saved programs=2, standalone=4, Move Mouse=8, Repeat=16,
+optional companion info=32, optional keyboard sync=64, optional typing pace=128).
+The client requires only the first five bits. Non-Fast pacing requires bit 128
+before BEGIN, including save-only uploads; never strip pacing silently. If bit
 32 is present, it queues one empty INFO query after READY. An older server with
 31 is not queried and its app version stays Unknown. INFO_REPLY is sent only in
 response to a query, so older clients never see an unsolicited unknown response.
@@ -126,9 +128,18 @@ are allowed; the entire encoded program is at most 65,536 bytes.
 | 4 | durationMs:u32, intervalMs:u32; alternating relative mouse moves, no buttons |
 | 5 | xMin:i8, xMax:i8, yMin:i8, yMax:i8; relative Move Mouse |
 | 6 | durationMs:u32, intervalMinMs:u32, intervalMaxMs:u32, bodyCount:u16, bodyBytes:u32, body records |
+| 7 | extraPauseMs:u16, variationMs:u16; first top-level record only |
+
+Opcode 7 is optional and never legal in Repeat or later in a sequence. Pause is
+0-1000 ms; variation cannot exceed pause and pause + variation cannot exceed 1000.
+Fast omits the record. Slow uses 80/0, Variable 80/30, Custom uses validated bounds.
+The extra pause is sampled after a literal character's final key release, in
+addition to normal hold/release timing; it does not retime explicit chords or
+mouse movement. The nonblocking deadline remains interruptible by Stop, USB/BLE
+loss and Repeat expiry. The record is part of saved-job bytes and CRC.
 
 Text must be nonempty printable ASCII/Tab/LF/CR, plus the 12 native Turkish
-letters only when layout=1. The Mac normalizes NFC and CRLF/CR to LF. Malformed,
+letters only when layout=1. Both desktops normalize NFC and CRLF/CR to LF. Malformed,
 overlong or unsupported UTF-8 is rejected. Brackets are ordinary text bytes.
 Literal text mappings may not contain Control/GUI modifiers.
 

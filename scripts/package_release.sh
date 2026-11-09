@@ -16,6 +16,9 @@ version=${1:-$(<"$root/VERSION")}
 (cd "$root/BluetoothClipboard" && shasum -a 256 -c dist/BUILD-SOURCE-SHA256SUMS.txt)
 out="$root/dist/v$version"
 windows="$root/BLEClipboardWindows/dist/v$version"
+[[ "$(tr -d '\r\n' < "$root/BLEClipboardWindows/dist/SOURCE-COMMIT.txt")" == "$(git -C "$root" rev-parse HEAD)" ]] || {
+    print -u2 "Windows artifacts are not from this reviewed source revision."; exit 1
+}
 for name in "BLE-Clipboard-$version-windows-x64-setup.exe" "BLE-Clipboard-$version-windows-x64-portable.zip" WINDOWS-THIRD-PARTY.txt; do
     [[ -s "$windows/$name" ]] || { print -u2 "Missing reviewed Windows artifact: $name"; exit 1; }
 done
@@ -32,9 +35,5 @@ cp "$root/LICENSE" "$out/LICENSE"
 cp "$root/NOTICE" "$out/NOTICE"
 cp "$root/README.md" "$out/README.md"
 cp "$windows/BLE-Clipboard-$version-windows-x64-setup.exe" "$windows/BLE-Clipboard-$version-windows-x64-portable.zip" "$windows/WINDOWS-THIRD-PARTY.txt" "$out/"
-cd "$out"
-shasum -a 256 "BLE-Clipboard-$version-universal.zip" ble_clipboard.fap \
-    ble-clipboard-flipper-source.tar.gz ble-clipboard-source.tar.gz \
-    FLIPPER-SOURCE-SHA256SUMS.txt README.md NOTICE LICENSE \
-    "BLE-Clipboard-$version-windows-x64-setup.exe" "BLE-Clipboard-$version-windows-x64-portable.zip" WINDOWS-THIRD-PARTY.txt > SHA256SUMS.txt
+"${PYTHON:-python3}" "$root/scripts/release_assets.py" "$out" "$version"
 print "Release artifacts: $out"

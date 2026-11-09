@@ -179,6 +179,8 @@ def text(value, layout):
         raise ValueError("Step text must be a string.")
     if not value:
         return b""
+    if len(value.encode()) > MAX_PROGRAM_BYTES:
+        raise ValueError("Text definition exceeds 65,536 UTF-8 bytes.")
     # The compiler can accept a full-size definition; encoded size is checked separately.
     import unicodedata
 

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from tkinter import ttk
 
 from .app import TITLES, button
-from .macros import chord, movement, options
+from .macros import chord, movement, new_macro, options, step, validate
 from .macros import text as validate_text
 from .protocol import LAYOUT_IDS, LAYOUTS, TARGET_IDS, TARGETS, KeyboardSettings, Timing
 from .release import REPOSITORY, check, links, version
@@ -20,8 +20,9 @@ class StepDialog(tk.Toplevel):
     def __init__(self, app, sequence, index):
         super().__init__(app.root)
         self.title(TITLES[sequence[index]["kind"]])
-        self.geometry("560x490")
-        self.minsize(500, 440)
+        self.maxsize(6000, 4000)
+        self.geometry(f"{int(560 * app.scale)}x{int(490 * app.scale)}")
+        self.minsize(int(500 * app.scale), int(440 * app.scale))
         self.transient(app.root)
         self.grab_set()
         original = sequence[index]
@@ -112,7 +113,8 @@ class StepDialog(tk.Toplevel):
 def parameters_dialog(app):
     window = tk.Toplevel(app.root)
     window.title("Parameters")
-    window.geometry("460x360")
+    window.maxsize(6000, 4000)
+    window.geometry(f"{int(520 * app.scale)}x{int(400 * app.scale)}")
     window.transient(app.root)
     window.grab_set()
     rows = ttk.Treeview(window, columns=("label",), height=7)
@@ -132,9 +134,28 @@ def parameters_dialog(app):
     pid, label = tk.StringVar(), tk.StringVar()
     ttk.Entry(fields, textvariable=pid, width=17).pack(side="left")
     ttk.Entry(fields, textvariable=label).pack(side="left", fill="x", expand=True)
+    error = tk.StringVar()
+    ttk.Label(window, textvariable=error, foreground="#ad3429", wraplength=460).pack(
+        fill="x", padx=12
+    )
+
+    def valid(candidate):
+        probe = new_macro("Parameters")
+        probe["steps"] = [step("text", "x")]
+        probe["parameters"] = candidate
+        try:
+            validate(probe)
+            error.set("")
+            return True
+        except ValueError as failure:
+            error.set(str(failure))
+            return False
 
     def add():
-        parameters.append({"id": pid.get(), "label": label.get()})
+        candidate = parameters + [{"id": pid.get(), "label": label.get()}]
+        if not valid(candidate):
+            return
+        parameters[:] = candidate
         pid.set("")
         label.set("")
         refresh()
@@ -147,14 +168,36 @@ def parameters_dialog(app):
     row = ttk.Frame(window, padding=12)
     row.pack(fill="x")
     button(row, "Add", add)
+
+    def selected(_=None):
+        if rows.selection():
+            current = parameters[int(rows.selection()[0])]
+            pid.set(current["id"])
+            label.set(current["label"])
+
+    rows.bind("<<TreeviewSelect>>", selected)
+
+    def update():
+        if not rows.selection():
+            return
+        candidate = deepcopy(parameters)
+        candidate[int(rows.selection()[0])] = {"id": pid.get(), "label": label.get()}
+        if valid(candidate):
+            parameters[:] = candidate
+            refresh()
+
+    button(row, "Update", update)
     button(row, "Remove", remove)
 
     def apply():
+        if not valid(parameters):
+            return
         app.current["parameters"] = parameters
         app.edited()
         window.destroy()
 
     button(row, "Apply", apply)
+    return window
 
 
 def keyboard_dialog(app):
@@ -222,7 +265,8 @@ def keyboard_dialog(app):
 def info_dialog(app):
     window = tk.Toplevel(app.root)
     window.title("Info & Companions")
-    window.geometry("540x480")
+    window.maxsize(6000, 4000)
+    window.geometry(f"{int(540 * app.scale)}x{int(480 * app.scale)}")
     window.transient(app.root)
     frame = ttk.Frame(window, padding=20)
     frame.pack(fill="both", expand=True)

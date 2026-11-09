@@ -1,4 +1,21 @@
-# 0.5.3 Implementation Status
+# 0.5.4 Implementation Status
+
+The matching Mac/Flipper keyboard-sync changes and a full Windows x64 unsigned
+beta companion are implemented on `feature/keyboard-sync-0.5.4`. Both desktops
+compile the same schema 1-3 libraries, with reviewed output, optional typing
+pacing and saved snapshots. Flipper-selected keyboards persist and win reconnect
+without changing saved files or existing desktop macro definitions.
+
+Local Swift/Python tests, shared golden bytes executed through the sanitizer C
+engine, universal Mac and API 88.2 FAP builds pass. Native Windows CI gates cover
+offline editing/review/scaling screenshots and bundled installer validation.
+Public release, notarization, Homebrew and catalog receipts are separate gates;
+do not treat a source commit or an intermediate CI build as publication.
+See [Windows parity](WINDOWS-PARITY.md). Physical BLE/USB, target focus/layout,
+restart and multi-hour validation remain unverified. The running installed app,
+Flipper, user libraries and pairing keys are untouched by this implementation.
+
+## Previous 0.5.3 Checkpoint
 
 0.5.3 fixes the application-data root's trailing slash in snapshot saving and
 large-transfer SD initialization. A read-only check on the owner's Flipper

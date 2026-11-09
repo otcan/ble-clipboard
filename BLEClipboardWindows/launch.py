@@ -10,7 +10,12 @@ def main():
     if "--offline-ui-test" in sys.argv:
         from ble_clipboard.ui_checks import run
 
-        run(Path(sys.argv[sys.argv.index("--offline-ui-test") + 1]))
+        scales = (
+            (float(sys.argv[sys.argv.index("--ui-scale") + 1]),)
+            if "--ui-scale" in sys.argv
+            else (1, 1.5, 2)
+        )
+        run(Path(sys.argv[sys.argv.index("--offline-ui-test") + 1]), scales=scales)
         return 0
     if "--self-test" in sys.argv:
         import tkinter as tk

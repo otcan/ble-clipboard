@@ -1,6 +1,23 @@
 # Hardware Validation
 
-## 0.5.4 - Keyboard Settings (Unreleased)
+## 0.5.4 - Matching Desktops and Keyboard Settings (Unreleased)
+
+On 2026-11-09, local checks passed all 53 Swift tests, 21 Python compiler/library/
+fake-BLE tests, AddressSanitizer/UBSan C checks, identical shared Swift/Python
+compiler golden bytes and complete wire fixtures executed by the C engine.
+New timing checks cover bounds, capability rejection before upload, cancellation
+during pauses, USB/BLE loss and timer rollover. Existing suites cover slot limits,
+SD rollback/recovery, keyboard revisions and unchanged snapshot metadata.
+The Mac universal and API 88.2 FAP builds pass without device access.
+
+Windows UI checks run on a genuine Windows x64 CI runner with synthetic libraries,
+no BLE worker, no clipboard read and no input output. Retained screenshots cover
+editor, review, error and minimum-size states at 100/150/200% Tk scaling. These
+are application renders, not physical monitor/Bluetooth certification. Installer
+and frozen-app validation are separate CI gates; only a successful final run
+certifies the corresponding source/artifact set. A previous shipped Windows
+binary does not exist, so reinstall plus legacy-library migration are the upgrade
+proxies, not a claimed physical upgrade from an older Windows release.
 
 Local checks on 2026-11-06 passed: all 50 Swift tests, AddressSanitizer/UBSan C
 suites, Swift-to-C fixtures and generated version/QR validation. The Flipper FAP

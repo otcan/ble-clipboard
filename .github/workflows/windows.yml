@@ -23,8 +23,14 @@ jobs:
           cache: pip
           cache-dependency-path: BLEClipboardWindows/requirements*.txt
       - run: python -m pip install -r BLEClipboardWindows/requirements-build.txt
+      - name: Configure isolated CI render surface (no device access)
+        run: powershell.exe -NoProfile -Command "Set-DisplayResolution -Width 3840 -Height 2160 -Force"
       - name: Offline Windows UI checks at 100, 150 and 200 percent
-        run: python BLEClipboardWindows/launch.py --offline-ui-test BLEClipboardWindows/dist/ui-checks
+        run: |
+          foreach ($scale in @(1, 1.5, 2)) {
+            python BLEClipboardWindows/launch.py --offline-ui-test BLEClipboardWindows/dist/ui-checks --ui-scale $scale
+            if ($LASTEXITCODE -ne 0) { throw "UI checks failed at scale $scale" }
+          }
       - name: Build Windows portable and per-user installer
         run: ./BLEClipboardWindows/build.ps1
       - name: Clean install and library-preserving reinstall/uninstall

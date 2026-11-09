@@ -1,5 +1,5 @@
 BLE Clipboard is an independent, unofficial project for Flipper Zero.
-It is not affiliated with Flipper Devices, Apple, or Homebrew.
+It is not affiliated with Flipper Devices, Apple, Microsoft, or Homebrew.
 
 The Flipper application uses the public Flipper Zero firmware SDK and its
 Bluetooth, GUI, storage, and USB HID APIs, maintained by Flipper Devices Inc.
@@ -24,3 +24,10 @@ adapter uses official firmware 1.5.1 u8g2/font/button resources. Firmware GUI
 behavior is GPL-3.0 licensed; u8g2 retains its upstream BSD license and font
 notices. No firmware library or font source is vendored by the adapter. See the
 provenance under BluetoothClipboard/screenshots and the firmware source above.
+
+The Windows companion uses Python, Tcl/Tk, Bleak, PyWinRT and regex. Windows
+packages include their actual runtime license texts and the PyInstaller
+bootloader/Inno Setup notices in THIRD-PARTY.txt; the same text is a separate
+WINDOWS-THIRD-PARTY.txt release asset. Windows screenshots are genuine offline
+CI renders with synthetic libraries and Bluetooth/output disabled, not device
+captures. See BLEClipboardWindows/README.md and docs/ARTWORK.md.

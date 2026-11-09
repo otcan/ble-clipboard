@@ -51,7 +51,6 @@ def generate():
         not in (
             "pip",
             "setuptools",
-            "pyinstaller",
             "pyinstaller-hooks-contrib",
             "altgraph",
             "pefile",
@@ -76,6 +75,12 @@ def generate():
             )
     python_license = Path(sys.base_prefix) / "LICENSE.txt"
     notices += ["\n--- Python ---\n", python_license.read_text()]
+    import os
+
+    inno_license = Path(os.environ["ProgramFiles(x86)"]) / "Inno Setup 6/LICENSE.TXT"
+    if not inno_license.is_file():
+        raise ValueError("Inno Setup license missing; review the installed build tool.")
+    notices += ["\n--- Inno Setup ---\n", inno_license.read_text(encoding="utf-8-sig")]
     import tkinter
 
     root = tkinter.Tk()

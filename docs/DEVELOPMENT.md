@@ -53,6 +53,15 @@ previews go to ignored `dist/catalog-preview`, never over genuine screenshots.
 
 ## Package 0.5.4
 
+Use Python 3.11+ for release tooling. Windows packages must be built on Windows
+x64 with pinned Python 3.12.10 and `BLEClipboardWindows/requirements-build.txt`.
+The Windows CI job performs offline UI checks at 100/150/200% scaling, checks
+PE architecture/version, builds both distributions, and tests clean installation,
+packaged execution without Python on PATH, reinstall and library-preserving
+uninstall. See [Windows build instructions](../BLEClipboardWindows/README.md).
+Download its artifact into `BLEClipboardWindows/dist` without changing the
+`SOURCE-COMMIT.txt` receipt. It must match the reviewed HEAD, not merely VERSION.
+
 ```sh
 scripts/package_release.sh 0.5.4
 ```
@@ -60,7 +69,8 @@ scripts/package_release.sh 0.5.4
 The version must match `VERSION`; the script rejects rebuilding older versions.
 It checks the built FAP's source fingerprints, builds a universal Mac app, uses
 `ditto` for the ZIP, includes both corresponding source archives, README, NOTICE,
-LICENSE, fingerprints and checksums under `dist/v0.5.4`. Source archives snapshot
+LICENSE, Windows installer/portable ZIP and runtime notices, fingerprints and
+one authoritative checksum file under `dist/v0.5.4`. Source archives snapshot
 the allowlisted current working tree, including local development changes,
 while excluding build products, private keys and local account configuration.
 
@@ -68,10 +78,17 @@ The default signature is ad-hoc. It verifies integrity, not Developer ID identit
 or notarization. No packaging command publishes, submits to Apple, installs the
 apps or changes the user's running processes/device.
 
-For an authorized signed release, configure Developer ID locally, use
-`scripts/notarize_release.sh 0.5.4` deliberately, then staple/verify and generate
-the Homebrew cask from the final ZIP. Never rerun a rebuild/resubmit script to
-resume a pending notarization. Never export signing keys or put credentials in
+For an authorized signed release, configure the existing Developer ID identity
+locally and run `scripts/notarize_release.sh 0.5.4` deliberately from the clean
+reviewed commit. Its resumable driver records candidate hashes/source, preserves
+the pre-staple ZIP and signed bundle, then creates a durable submission guard.
+The **same command on retry only polls/finalizes that submission**, never rebuilds
+or resubmits. Exit 3 means In Progress. A missing receipt after an attempted
+submission requires manual ID recovery, not another submission. Accepted builds
+are stapled, deep/strict verified, checked for team/version/build/architectures
+and Gatekeeper's Notarized Developer ID, then repacked without re-signing.
+Final hashes are frozen; an interrupted final archive/checksum promotion is
+resumed without regenerating the archive. Never export signing keys or put credentials in
 CI, shell arguments, source or chat. The old 0.1.1 submission/artifacts are not
 part of the 0.5.4 release and must remain unchanged. Public 0.5.2/0.5.3 assets are also
 immutable; a patch release uses a new tag and matching asset set.
@@ -101,8 +118,10 @@ is Accepted and the final ZIP passes stapler validation, deep/strict codesign,
 team/version/architecture checks and Gatekeeper's Notarized Developer ID assessment.
 
 After the tag workflow succeeds, replace every draft asset as one matching set:
-ZIP, FAP, SHA256SUMS.txt, README, NOTICE, LICENSE, both source archives and FAP
-source fingerprints. In particular, never retain a workflow FAP beside checksums
+Mac ZIP, Windows installer/portable ZIP, Windows runtime notices, FAP,
+SHA256SUMS.txt, README, NOTICE, LICENSE, both source archives and FAP source
+fingerprints. `scripts/release_assets.py` defines the eleven payloads; the
+checksum file is the twelfth asset. In particular, never retain a workflow FAP beside checksums
 for a different local FAP. Refresh documentation/source assets without rebuilding
 the accepted Mac bundle. Verify the draft's downloaded set before publishing and
 the public downloaded set afterward. Never overwrite an already public version.
