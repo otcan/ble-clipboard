@@ -1,8 +1,9 @@
-# Macros in 0.5.2
+# Macros in 0.5.4
 
-Quick Paste and the macro library are one Mac application. Its companion is
-the independent BLE Clipboard Flipper app, not a script interpreter. Both apps
-use protocol 4. The standard build and sandboxed Store target share this UI.
+Quick Paste and the macro library are available in both the Mac companion and
+the full Windows x64 unsigned beta companion. They send protocol-4 jobs to the
+Flipper app. The USB target needs no companion. The Mac standard build and
+sandboxed Store development target share their UI; Store distribution is separate.
 
 ## Definitions
 
@@ -10,7 +11,7 @@ JSON schemas 1/2 stay readable; generic mouse/repeat documents use schema 3.
 Each macro has a name, target OS, keyboard layout,
 ordered steps and optional named parameters. Existing definitions/exported files
 remain readable. The Flipper receives compiled snapshots, not template
-definitions or the entire Mac library.
+definitions or the entire desktop library.
 
 - Literal text is never interpolated or parsed as keys.
 - Templates support `{{clipboard}}`, ISO-8601 `{{timestamp}}` and named parameters.
@@ -38,10 +39,13 @@ copies definitions under new IDs and never runs them.
 The direct build stores `Application Support/BLE Clipboard/Macros/library.json`;
 the Store/preview build uses that path inside its sandbox. Saves are atomic with
 one validated backup; corrupt files are preserved until explicit recovery.
+Windows uses `%APPDATA%\BLE Clipboard\macros.json` with a `.backup` alongside it.
+Its installer upgrades/uninstall preserve the library and preferences.
 Use export/import to move between containers. Exports are unencrypted JSON.
 
-Clipboard contents are read only by Load Clipboard or review of a template that
-uses the clipboard. Parameters and timestamp are captured for the reviewed run.
+Clipboard contents are read only by Load Clipboard, or on Mac when reviewing a
+template that uses the clipboard. Windows template review has its own explicit
+Load Clipboard action. Parameters and timestamp are captured for the reviewed run.
 Literal secrets deliberately saved in macros persist in the library/backup.
 No automatic replay queue is maintained on the Flipper. Send to Flipper saves a
 plaintext snapshot on SD. Clipboard, timestamp and parameters are fixed at send
@@ -52,6 +56,19 @@ Review shows actual expanded text/keys/delays. The target OS and layout are part
 of the immutable compiled job. Confirm the target and explicitly Run on USB.
 There is no global hotkey, automatic clipboard watching or implicit execution
 after reconnect. Hide-before-output does not prove that another app has focus.
+Relevant parameter, connection, keyboard, destination or timing edits clear the
+confirmation. A fresh confirmation never silently replays a prior transfer.
+
+## Typing Pace
+
+Both desktops remember Fast, Slow, Variable or Custom locally. Fast keeps the
+existing 12 ms hold / at least 8 ms release gap. Slow adds 80 ms after each
+literal character; Variable adds 80 +/- 30 ms. Custom pause/variation must stay
+within 0-1000 ms. Explicit key combinations and mouse movement are not retimed.
+The selected pace is encoded in the reviewed program and in saved SD snapshots,
+not written into the shared JSON macro definition. Non-Fast jobs require the
+Flipper typing-pace capability before upload; older firmware is never silently
+given a different pace. A paced text-only program has five fewer payload bytes.
 
 ## Text and Layouts
 
@@ -67,7 +84,7 @@ includes metadata; a single text-only job can hold up to 65,525 ASCII bytes.
 
 ## Transfer and Stop
 
-The Mac uses the independent bounded upload/verify/execute protocol described in
+Both desktops use the bounded upload/verify/execute protocol described in
 [PROTOCOL.md](PROTOCOL.md). The Flipper verifies CRC and every operation/layout
 mapping before execution. Large jobs use temporary SD storage, not a history.
 
@@ -87,7 +104,7 @@ stops permanently, rather than queueing for the next USB connection.
 
 Stop cannot undo input or restore a partly entered dead key. Tabs/newlines can
 submit forms or commands. Completion confirms HID reports, not receipt by the
-intended application. Focus/shortcut behavior needs fresh 0.5.2 hardware testing.
+intended application. Focus/shortcut behavior remains unverified for 0.5.4.
 
 Legacy mouse definitions migrate in memory to Repeat with +1 X, Delay 50 ms and
 -1 X steps, retaining IDs, duration and layout. Existing saved binary snapshots

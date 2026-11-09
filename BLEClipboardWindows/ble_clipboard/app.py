@@ -179,7 +179,7 @@ class ClipboardApp:
             if offline
             else "Pair Paste in Windows Bluetooth settings; approve matching codes on both devices."
         )
-        self.timer = tk.StringVar(value="00:00 elapsed / -- remaining")
+        self.timer = tk.StringVar(value="00:00:00 elapsed / -- timed remaining")
         self.validation = tk.StringVar(value=self.library.error or "")
         self.search, self.name, self.layout, self.target = (
             tk.StringVar() for _ in range(4)
@@ -881,8 +881,12 @@ class ClipboardApp:
             elif kind == "progress":
                 self.progress["value"] = value
             elif kind == "timer":
+
+                def duration(seconds):
+                    return f"{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}"
+
                 self.timer.set(
-                    f"{value[0] // 60:02}:{value[0] % 60:02} elapsed / {value[1] // 60:02}:{value[1] % 60:02} remaining"
+                    f"{duration(value[0])} elapsed / {duration(value[1]) if value[1] else '--'} timed remaining"
                 )
             elif kind == "devices":
                 self.devices = value
@@ -926,5 +930,7 @@ class ClipboardApp:
 
 def main():
     root = tk.Tk()
-    ClipboardApp(root)
+    app = ClipboardApp(root)
     root.mainloop()
+    if app.worker:
+        app.worker.thread.join(timeout=15)
