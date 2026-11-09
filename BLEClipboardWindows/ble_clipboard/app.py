@@ -148,6 +148,7 @@ class ClipboardApp:
         if "vista" in style.theme_names():
             style.theme_use("vista")
         style.configure("Heading.TLabel", font=("Segoe UI", 14, "bold"))
+        style.configure("Treeview", rowheight=int(24 * self.scale))
         icon = (
             Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
             / "resources"
@@ -157,10 +158,19 @@ class ClipboardApp:
             root.iconbitmap(str(icon))
 
         def choice(key, values, default):
-            return prefs.get(key) if prefs.get(key) in values else default
+            value = prefs.get(key)
+            if type(value) is int and 0 <= value < len(values):
+                return values[value]
+            return value if value in values else default
 
         self.quick_layout = tk.StringVar(value=choice("layout", LAYOUTS, LAYOUTS[0]))
         self.quick_target = tk.StringVar(value=choice("target", TARGETS, TARGETS[1]))
+        if not self.library.path.exists() and not self.library.error:
+            for macro in self.library.macros:
+                macro.update(
+                    layout=LAYOUT_IDS[LAYOUTS.index(self.quick_layout.get())],
+                    target=TARGET_IDS[TARGETS.index(self.quick_target.get())],
+                )
         self.mode = tk.StringVar(value=choice("mode", (*PRESETS, "Custom"), "Fast"))
         self.pause = tk.StringVar(value=str(prefs.get("pause", 80)))
         self.variation = tk.StringVar(value=str(prefs.get("variation", 30)))
@@ -279,11 +289,11 @@ class ClipboardApp:
             height=9,
         )
         self.steps.heading("#0", text="#")
-        self.steps.column("#0", width=45, stretch=False)
+        self.steps.column("#0", width=int(45 * self.scale), stretch=False)
         self.steps.heading("action", text="Action")
-        self.steps.column("action", width=115, stretch=False)
+        self.steps.column("action", width=int(145 * self.scale), stretch=False)
         self.steps.heading("value", text="Value / options")
-        self.steps.column("value", width=250)
+        self.steps.column("value", width=int(250 * self.scale))
         self.steps.pack(fill="both", expand=True, pady=(8, 6))
         self.steps.bind("<Double-1>", lambda _: self.edit_step())
         row = ttk.Frame(editor)
@@ -387,6 +397,8 @@ class ClipboardApp:
 
     def quick_keyboard_changed(self, _=None):
         if self.offline or self.state == "disconnected":
+            return
+        if not self.worker.transport._capabilities & 64:
             return
         if self.state != "ready" or self.keyboard is None:
             self.status.set(

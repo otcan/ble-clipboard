@@ -421,7 +421,7 @@ int32_t ble_clipboard_app(void* context) {
                         clipboard_server_keyboard_changed(&app->server);
                         app->page = LibraryList;
                     } else {
-                        const char* message = result == ClipboardKeyboardConflict ? "Changed on Mac\nReopen Keyboard" :
+                        const char* message = result == ClipboardKeyboardConflict ? "Changed remotely\nReopen Keyboard" :
                             result == ClipboardKeyboardUnavailable ? "Layout unavailable\nCheck SD layout assets" : "Keyboard not saved\nCheck SD card";
                         snprintf(app->outcome, sizeof(app->outcome), "%s", message);
                         app->outcome_until = millis() + 2500;

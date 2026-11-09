@@ -11,7 +11,15 @@ from tkinter import ttk
 from .app import TITLES, button
 from .macros import chord, movement, new_macro, options, step, validate
 from .macros import text as validate_text
-from .protocol import LAYOUT_IDS, LAYOUTS, TARGET_IDS, TARGETS, KeyboardSettings, Timing
+from .protocol import (
+    LAYOUT_IDS,
+    LAYOUTS,
+    TARGET_IDS,
+    TARGETS,
+    KeyboardSettings,
+    Timing,
+    saved_descriptor,
+)
 from .release import REPOSITORY, check, links, version
 from .review import RunReview
 
@@ -386,7 +394,9 @@ class ReviewDialog(tk.Toplevel):
         for p in macro["parameters"]:
             row = ttk.Frame(body)
             row.pack(fill="x", pady=3)
-            ttk.Label(row, text=p["label"], width=20).pack(side="left")
+            ttk.Label(
+                row, text=p["label"], width=20, wraplength=int(180 * app.scale)
+            ).pack(side="left")
             var = tk.StringVar()
             self.parameters[p["id"]] = var
             ttk.Entry(row, textvariable=var).pack(side="left", fill="x", expand=True)
@@ -484,11 +494,8 @@ class ReviewDialog(tk.Toplevel):
                 raise ValueError(
                     "Update Flipper for this typing speed, or select Fast."
                 )
-            if self.destination.get() == "save" and (
-                not self.stored_name.get().strip()
-                or not 1 <= len(self.stored_name.get().encode()) <= 79
-            ):
-                raise ValueError("Saved name must be 1-79 UTF-8 bytes.")
+            if self.destination.get() == "save":
+                saved_descriptor(self.macro["id"], self.stored_name.get())
             self.preview.configure(state="normal")
             self.preview.delete("1.0", "end")
             self.preview.insert("1.0", "\n\n".join(compiled.preview))

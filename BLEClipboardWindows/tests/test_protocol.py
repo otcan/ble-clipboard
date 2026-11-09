@@ -9,10 +9,20 @@ from ble_clipboard.protocol import (
     compile_text,
     crc32,
     frame,
+    saved_descriptor,
 )
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_saved_descriptor_rejects_invalid_names_before_upload(self):
+        sid = "10000000-0000-4000-8000-000000000001"
+        self.assertEqual(saved_descriptor(sid, "a" * 79)[16], 79)
+        for name in ("", "  ", "x" * 80, "Line\nBreak", "Tab\t", "Zero\u200bWidth"):
+            with self.assertRaises(ValueError):
+                saved_descriptor(sid, name)
+        with self.assertRaises(ValueError):
+            saved_descriptor("00000000-0000-0000-0000-000000000000", "Name")
+
     def test_wire_and_limits(self):
         self.assertEqual(
             compile_text("A\r\n\t", 1), b"BCM4\x01\x00\x01\x03\x00\x00\x00A\n\t"

@@ -34,6 +34,7 @@ class FakeClient:
         self.job = 0
         self.program = bytearray()
         self.capabilities = 255
+        self.keyboard = (0, 0, 0, 0)
 
     async def connect(self):
         self.is_connected = True
@@ -117,16 +118,17 @@ class FakeClient:
                 _, _, layout, target, saved, revision = struct.unpack(
                     "<HBBBBI", payload
                 )
+                result = int(revision != self.keyboard[3])
+                if not result:
+                    self.keyboard = (layout, target, saved, revision + 1)
                 self.respond(
                     Command.KEYBOARD_REPLY,
-                    struct.pack(
-                        "<BHBBBBI", 1, request, 0, layout, target, saved, revision + 1
-                    ),
+                    struct.pack("<BHBBBBI", 1, request, result, *self.keyboard),
                 )
             else:
                 self.respond(
                     Command.KEYBOARD_REPLY,
-                    struct.pack("<BHBBBBI", 1, request, 0, 0, 0, 0, 0),
+                    struct.pack("<BHBBBBI", 1, request, 0, *self.keyboard),
                 )
         elif command == Command.SAVE:
             assert self.had_commit
@@ -303,6 +305,9 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_keyboard_revision_conflicts_and_stale_notifications(self):
         await self.transport.set_keyboard(KeyboardSettings(1, 2, True, 0))
+        self.assertEqual(self.transport.keyboard, KeyboardSettings(1, 2, True, 1))
+        with self.assertRaisesRegex(ValueError, "changed on Flipper"):
+            await self.transport.set_keyboard(KeyboardSettings(6, 1, True, 0))
         self.assertEqual(self.transport.keyboard, KeyboardSettings(1, 2, True, 1))
         self.client.respond(
             Command.KEYBOARD_REPLY, struct.pack("<BHBBBBI", 1, 0, 0, 0, 0, 0, 0)

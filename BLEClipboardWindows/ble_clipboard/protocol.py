@@ -2,6 +2,7 @@
 
 import struct
 import unicodedata
+import uuid
 import zlib
 from dataclasses import dataclass
 from enum import IntEnum
@@ -169,6 +170,26 @@ def frame(command, payload=b""):
     if len(payload) > 520:
         raise ValueError("Frame is too large.")
     return struct.pack("<BBH", 4, command, len(payload)) + payload
+
+
+def saved_descriptor(identifier, name):
+    if not isinstance(name, str) or not isinstance(identifier, str):
+        raise ValueError("Invalid saved snapshot name or identifier.")
+    try:
+        value = uuid.UUID(identifier)
+    except ValueError:
+        raise ValueError("Invalid saved snapshot identifier.") from None
+    encoded = name.encode("utf-8")
+    if (
+        not value.int
+        or not 1 <= len(encoded) <= 79
+        or not name.strip()
+        or any(unicodedata.category(c) in ("Cc", "Cf") for c in name)
+    ):
+        raise ValueError(
+            "Saved name must be 1-79 UTF-8 bytes with no control characters, and its identifier must be nonzero."
+        )
+    return value.bytes + bytes([len(encoded)]) + encoded
 
 
 @dataclass(frozen=True)

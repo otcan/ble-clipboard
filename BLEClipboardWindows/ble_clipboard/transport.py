@@ -3,8 +3,6 @@
 import asyncio
 import secrets
 import struct
-import unicodedata
-import uuid
 
 from .protocol import (
     HELLO,
@@ -20,6 +18,7 @@ from .protocol import (
     compile_text,
     crc32,
     frame,
+    saved_descriptor,
     text_bytes,
 )
 
@@ -394,17 +393,7 @@ class ClipboardTransport:
         saved_payload = b""
         if saved is not None:
             sid, name = saved
-            encoded = name.encode("utf-8")
-            if (
-                not 1 <= len(encoded) <= 79
-                or not name.strip()
-                or any(unicodedata.category(c) in ("Cc", "Cf") for c in name)
-                or uuid.UUID(sid).int == 0
-            ):
-                raise ValueError(
-                    "Saved name must be 1-79 UTF-8 bytes with no control characters."
-                )
-            saved_payload = uuid.UUID(sid).bytes + bytes([len(encoded)]) + encoded
+            saved_payload = saved_descriptor(sid, name)
         if len(program) > self._capacity:
             raise ValueError("Text exceeds this Flipper's capacity.")
         if timing != Timing() and not self._capabilities & 128:
