@@ -72,3 +72,26 @@ for the read-only Info-mode procedure and provenance.
 
 The older `docs/assets/mac-app.png` records the historical 0.1.0 UI; it is not
 used to represent the current app.
+
+### Windows 0.5.4 Offline UI
+
+`docs/assets/windows-editor.png` (960x640) and `windows-review.png` (760x660)
+are original PNG client-area captures of the native Tk Windows app, copied
+byte-for-byte from [CI run 42702860795](https://github.com/otcan/ble-clipboard/actions/runs/42702860795),
+source `3df96891806fa80eb80a0e4a01aa7d916310e4e5`.
+The runner was Windows Server 2022 x64 with Python 3.12.10. Capture used Pillow's
+Windows HWND capture, not a mockup, generated UI, annotation or composite.
+No pixels were cropped, resized, retouched or replaced after capture.
+
+The synthetic temporary library contains only example text/actions. Bluetooth is
+disabled by construction (`worker is None`); no clipboard read, pairing, saved-job
+transfer, mouse output or typing occurred. Run is disabled in offline review.
+The source version is 0.5.4; these screenshots do not certify a physical Windows
+BLE/USB session or a multi-hour run.
+
+The separate CI UI artifact retains editor/Quick Paste/review/errors, step and
+parameter dialogs, 32-parameter review and minimum sizes at 100/150/200% Tk
+scaling. The runner's small desktop requires overlapping, unedited viewport tiles
+for larger windows. Each tile has a pixel-offset receipt; tiles are not stitched
+into a misleading full-window screenshot. The two README captures fit completely
+inside the runner work area and contain no other application's content.

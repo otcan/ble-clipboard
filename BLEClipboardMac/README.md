@@ -1,4 +1,4 @@
-# BLE Clipboard 0.5.4 for macOS (Development)
+# BLE Clipboard 0.5.4 for macOS
 
 One native Mac app contains Quick Paste and the existing macro library. Its
 companion is the independent **BLE Clipboard 0.5.4** Flipper app under

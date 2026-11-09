@@ -1,8 +1,8 @@
-# Windows Companion (0.5.4 Beta Candidate)
+# Windows Companion (0.5.4 Beta)
 
 Python 3.12, Tkinter and Bleak; Windows 10 2004+ / Windows 11, x64. The unsigned
-beta is not published until the matching Mac, Flipper and Windows release set
-has passed its release gates. ARM64 and Linux sender packages are not included.
+beta is published only as a matching Mac, Flipper and Windows release set after
+the release gates pass. ARM64 and Linux sender packages are not included.
 
 The Windows companion edits the same JSON macro libraries as the Mac: searchable
 library, creation/duplication/deletion, parameters, templates, key combinations,

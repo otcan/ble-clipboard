@@ -1,12 +1,12 @@
 # BLE Clipboard
 
-An independent Flipper Zero companion for the BLE Clipboard Mac app. Receive
+The Flipper Zero companion for the BLE Clipboard Mac and Windows apps. Receive
 reviewed clipboard text and macros over authenticated Bluetooth LE, then send
 keyboard and mouse input over USB to a device you own or have permission to use.
 No Ducker dependency or target-side agent is required.
 
-Current source is the unreleased 0.5.4 development pair. The public downloads
-linked below remain 0.5.3; they do not contain standalone keyboard settings.
+Version 0.5.4 adds persistent standalone keyboard settings and matching Mac and
+full Windows companions. Windows is an unsigned x64 beta.
 
 ## Features
 
@@ -23,16 +23,18 @@ linked below remain 0.5.3; they do not contain standalone keyboard settings.
 ## Requirements
 
 - Flipper Zero with official firmware 1.5.1 or a compatible API.
-- The matching Mac companion on macOS 14 or later to create and send jobs.
+- A matching Mac companion (macOS 14+) or Windows x64 beta (Windows 10 2004+/11)
+  to create and send jobs. The USB target does not need a companion.
 - A USB cable to the intended keyboard/mouse target.
 - An SD card for saved jobs, programs larger than 4 KiB, and non-built-in layout assets.
   Layout files come from the official firmware resources.
 
-[Download the matching Mac app and release files](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3).
+[Download the matching desktop app and release files](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.4).
 
 ## Use
 
-Open BLE Clipboard on Flipper, then connect from the Mac app. Compare and approve
+Open BLE Clipboard on Flipper, then connect from the desktop app. On Windows,
+pair Paste in Bluetooth settings first. Compare and approve
 the pairing codes. Choose the target OS/layout, review the expanded output and
 confirm target focus before Run. Save to Flipper stores a fixed snapshot without
 executing it. On Flipper, Up/Down selects a saved entry and OK opens it; Run needs
@@ -62,6 +64,6 @@ undetectable. Saved snapshots are plaintext on SD; do not save secrets.
 The 0.5.1 button-release guard is retained. Automated tests are not a substitute
 for physical layout, focus, drag-lock or multi-hour checks on your target.
 
-[Source and setup guide](https://github.com/otcan/ble-clipboard/tree/v0.5.3)
+[Source and setup guide](https://github.com/otcan/ble-clipboard/tree/v0.5.4)
 
 GPL-3.0-only. Not affiliated with Flipper Devices.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.4 - Unreleased
+## 0.5.4
 
 - Add the full Windows x64 companion as an unsigned beta: searchable macro
   library/editor, templates/parameters, shortcuts, Move Mouse/Repeat, import/export,
@@ -31,8 +31,8 @@
   emit HID input, execute jobs or change a running job's keyboard.
 - Atomic settings replacement/recovery; failed writes leave the previous setting
   active. No automatic English fallback when a selected layout is unavailable.
-- Development build only. No installed-app replacement or public 0.5.4 release;
-  physical disconnected/reconnected checks remain pending owner approval.
+- Building/publishing does not replace installed apps. Physical disconnected/
+  reconnected checks remain unverified and require separate owner approval.
 
 ## 0.5.3 - 2026-11-04
 

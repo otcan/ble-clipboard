@@ -1,6 +1,6 @@
 # Development and Release
 
-Version 0.5.4 is an unreleased independent Mac/Flipper pair. There is no vendor submodule or
+Version 0.5.4 includes matching Mac, Windows x64 beta and Flipper apps. There is no vendor submodule or
 third-party typing backend. Keep the running app and connected device untouched
 unless installation or live testing is separately requested.
 

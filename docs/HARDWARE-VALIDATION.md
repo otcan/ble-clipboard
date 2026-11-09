@@ -1,6 +1,6 @@
 # Hardware Validation
 
-## 0.5.4 - Matching Desktops and Keyboard Settings (Unreleased)
+## 0.5.4 - Matching Desktops and Keyboard Settings
 
 On 2026-11-09, local checks passed all 53 Swift tests, 22 Python compiler/library/
 fake-BLE tests, AddressSanitizer/UBSan C checks, identical shared Swift/Python

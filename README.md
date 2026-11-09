@@ -32,18 +32,17 @@ More [screenshots](#screenshots) and [capture provenance](docs/ARTWORK.md).
 
 ## Downloads
 
-**0.5.4 is being validated.** The latest public matching pair is 0.5.3.
-The new full Windows companion is an unsigned x64 beta candidate, not yet a
-public download. Do not mix development companions with older FAPs.
+**Get the matching 0.5.4 apps.** Choose one desktop sender and install the Flipper
+companion separately. Windows is an unsigned x64 beta.
 
 | App | Download | Requirements |
 | --- | --- | --- |
-| Mac sender | [Universal ZIP](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/BLE-Clipboard-0.5.3-universal.zip) | macOS 14+, Apple Silicon or Intel; signed and notarized |
-| Windows sender | 0.5.4 unsigned beta candidate | Windows 10 2004+ / 11, x64; bundled Python |
-| Flipper companion | [ble_clipboard.fap](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/ble_clipboard.fap) | Official firmware 1.5.1 / API 88.2, microSD card |
+| Mac sender | [Universal ZIP](https://github.com/otcan/ble-clipboard/releases/download/v0.5.4/BLE-Clipboard-0.5.4-universal.zip) | macOS 14+, Apple Silicon or Intel; signed and notarized release |
+| Windows sender | [Installer](https://github.com/otcan/ble-clipboard/releases/download/v0.5.4/BLE-Clipboard-0.5.4-windows-x64-setup.exe) · [Portable ZIP](https://github.com/otcan/ble-clipboard/releases/download/v0.5.4/BLE-Clipboard-0.5.4-windows-x64-portable.zip) | Windows 10 2004+ / 11, x64; unsigned beta, bundled Python |
+| Flipper companion | [ble_clipboard.fap](https://github.com/otcan/ble-clipboard/releases/download/v0.5.4/ble_clipboard.fap) | Official firmware 1.5.1 / API 88.2, microSD card |
 
-[Release page](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3) ·
-[Checksums](https://github.com/otcan/ble-clipboard/releases/download/v0.5.3/SHA256SUMS.txt) ·
+[Release page](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.4) ·
+[Checksums](https://github.com/otcan/ble-clipboard/releases/download/v0.5.4/SHA256SUMS.txt) ·
 [Changelog](CHANGELOG.md)
 
 ## Install the Matching Pair
@@ -65,7 +64,7 @@ Applications. Quit your older copy before replacing it.
 
 **Homebrew installs only the Mac sender, not the Flipper app or Windows app.**
 
-**Windows beta:** when 0.5.4 is public, use its per-user installer or extract the
+**Windows beta:** use the per-user installer or extract the
 whole portable ZIP. Python is bundled. No administrator rights are required;
 installation does not change Bluetooth settings or start output. This beta is
 unsigned, so Windows may show a reputation/signing warning. Verify its release
@@ -134,7 +133,7 @@ No firmware flash, SD formatting or pairing-key deletion is needed.
 | Quick Paste | Explicitly load clipboard text or a text file, review it, then type it over USB. |
 | Macro library | Search, create, duplicate, edit and reorder text, templates, parameters, shortcuts, delays, Move Mouse and Repeat. Import/export JSON compatible with Mac and Windows. |
 | Typing speed (0.5.4) | Fast retains normal timing; Slow adds 80 ms per character; Variable adds 80 +/- 30 ms; Custom stays within 0-1000 ms. |
-| Send to Flipper | Save a compiled plaintext snapshot without running it. Clipboard, parameters, timestamp and pacing are frozen at send time. Up to 20 entries. |
+| Send to Flipper | Save a compiled plaintext snapshot without running it. Clipboard, parameters, timestamp and pacing are captured in the review. Up to 20 entries. |
 | Standalone runs | Explicitly continue without the desktop sender. Flipper shows elapsed/remaining time, retains physical Stop and ends on USB loss, app exit or power loss. Reconnect to inspect/stop without replay. |
 
 On Flipper, **Up/Down** selects a saved entry, **OK** opens it, and **Run** needs
@@ -148,7 +147,7 @@ button or OS drag lock. It may drift; no undetectability or idle-policy claim.
 
 ## Keyboard Settings
 
-The unreleased **0.5.4** source adds **Left > Keyboard** on idle Flipper: choose
+**Left > Keyboard** on idle Flipper: choose
 any of 28 layouts and the target OS, then **Save keyboard**. It persists on SD.
 **Saved runs: Device** uses it for local runs without rewriting snapshots;
 **Original** retains the saved keyboard and remains the upgrade default.
@@ -177,6 +176,10 @@ hardware evidence. [Completed run](docs/assets/mac-live-complete.jpg) ·
 Windows CI renders use synthetic libraries, with Bluetooth and output disabled.
 They validate editing/review/error layouts, not physical transfers. See
 [screenshot provenance](docs/ARTWORK.md) and [Windows parity](docs/WINDOWS-PARITY.md).
+
+<img src="docs/assets/windows-editor.png" width="960" alt="BLE Clipboard 0.5.4 Windows unsigned beta macro editor, captured offline with a synthetic library">
+
+<img src="docs/assets/windows-review.png" width="760" alt="BLE Clipboard 0.5.4 Windows unsigned beta expanded-output review, offline with Run disabled">
 
 ## Privacy and Limits
 
